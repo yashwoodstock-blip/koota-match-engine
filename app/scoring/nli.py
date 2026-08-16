@@ -82,10 +82,15 @@ async def evaluate_nli_pair(
 
     try:
         data = await fetch_hf_nli(t1, t2, client=client)
-        labels = data.get("labels", [])
-        scores = data.get("scores", [])
+        if isinstance(data, list):
+            prob_map = {item.get("label"): float(item.get("score", 0.0)) for item in data if isinstance(item, dict)}
+        elif isinstance(data, dict):
+            labels = data.get("labels", [])
+            scores = data.get("scores", [])
+            prob_map = dict(zip(labels, scores))
+        else:
+            prob_map = {}
 
-        prob_map = dict(zip(labels, scores))
         ent = float(prob_map.get("entailment", 0.33))
         neu = float(prob_map.get("neutral", 0.34))
         con = float(prob_map.get("contradiction", 0.33))
