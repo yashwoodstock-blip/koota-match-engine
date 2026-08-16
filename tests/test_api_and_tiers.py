@@ -83,8 +83,17 @@ def test_api_profile_and_match_lifecycle(monkeypatch):
     async def mock_emb(text, *args, **kwargs):
         return [0.5] * 384
 
+    async def mock_judge(prompt, *args, **kwargs):
+        return {
+            "agreement_score": 0.90,
+            "contradiction": False,
+            "reasoning": "High alignment on values.",
+            "key_tensions": [],
+        }, "groq"
+
     monkeypatch.setattr("app.scoring.semantic.fetch_hf_embedding", mock_emb)
     monkeypatch.setattr("app.api.routes_profiles.get_embedding", mock_emb)
+    monkeypatch.setattr("app.scoring.llm_judge.dispatch_llm_judge", mock_judge)
 
     with TestClient(app) as client:
         # 1. Create Profile A
