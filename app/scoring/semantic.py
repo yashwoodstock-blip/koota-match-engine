@@ -12,7 +12,7 @@ HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
 HF_EMBEDDING_MODEL = os.getenv(
     "HF_EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
-HF_API_URL = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_EMBEDDING_MODEL}"
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_EMBEDDING_MODEL}"
 
 
 def cosine_similarity(v1: List[float], v2: List[float]) -> float:

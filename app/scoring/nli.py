@@ -9,7 +9,7 @@ load_dotenv()
 
 HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
 HF_NLI_MODEL = os.getenv("HF_NLI_MODEL", "facebook/bart-large-mnli")
-HF_NLI_URL = f"https://api-inference.huggingface.co/models/{HF_NLI_MODEL}"
+HF_NLI_URL = f"https://router.huggingface.co/hf-inference/models/{HF_NLI_MODEL}"
 
 
 @dataclass
