@@ -1,0 +1,29 @@
+name: Free Tier Keepalive Ping
+
+on:
+  schedule:
+    # Run every 3 days at 06:00 UTC
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-services:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Web Service
+        run: |
+          if [ -n "${{ secrets.RENDER_SERVICE_URL }}" ]; then
+            echo "Pinging Render Service at ${{ secrets.RENDER_SERVICE_URL }}..."
+            curl -fsS -m 30 "${{ secrets.RENDER_SERVICE_URL }}/health" || echo "Render ping returned non-200 or timed out"
+          else
+            echo "RENDER_SERVICE_URL secret not set. Skipping."
+          fi
+
+      - name: Ping Supabase REST API
+        run: |
+          if [ -n "${{ secrets.SUPABASE_URL }}" ] && [ -n "${{ secrets.SUPABASE_KEY }}" ]; then
+            echo "Pinging Supabase REST endpoint..."
+            curl -fsS -m 30 -H "apikey: ${{ secrets.SUPABASE_KEY }}" -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" "${{ secrets.SUPABASE_URL }}/rest/v1/" || echo "Supabase ping returned non-200 or timed out"
+          else
+            echo "SUPABASE_URL or SUPABASE_KEY secret not set. Skipping."
+          fi
