@@ -132,12 +132,15 @@ async def score_subjective_koota(
     client: Optional[httpx.AsyncClient] = None,
 ) -> float:
     """Compute semantic similarity between two subjective answers."""
-    # If both have cached vector embeddings, compute cosine similarity in-memory
-    if ans1.embedding and ans2.embedding:
-        return cosine_similarity(ans1.embedding, ans2.embedding)
+    v1 = await get_embedding(ans1.raw_value, cached_embedding=ans1.embedding, client=client)
+    v2 = await get_embedding(ans2.raw_value, cached_embedding=ans2.embedding, client=client)
 
-    # Otherwise query the live Hugging Face sentence similarity endpoint
-    return await fetch_hf_similarity(ans1.raw_value, ans2.raw_value, client=client)
+    if ans1.embedding is None:
+        ans1.embedding = v1
+    if ans2.embedding is None:
+        ans2.embedding = v2
+
+    return cosine_similarity(v1, v2)
 
 
 async def score_all_subjective_kootas(
