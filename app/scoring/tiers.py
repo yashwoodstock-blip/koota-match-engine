@@ -143,7 +143,14 @@ def classify_tier(
     # Gather Friction Points (low scores or disagreement flags)
     frictions: List[str] = []
 
-    # Add friction from explicit disagreement flags first
+    # Add friction from contradiction gates first
+    for gate in aggregate.contradiction_gates:
+        template = FRICTION_TEMPLATES.get(gate["koota_id"], f"Critical conflict in {gate['koota_name']}")
+        gate_str = f"{template} [Contradiction Override: {gate['severity'].upper()}]"
+        if gate_str not in frictions:
+            frictions.insert(0, gate_str)
+
+    # Add friction from explicit disagreement flags
     for flag in flags:
         k_id = flag["koota_id"]
         template = FRICTION_TEMPLATES.get(k_id)
@@ -161,7 +168,7 @@ def classify_tier(
             if template and template not in frictions:
                 frictions.append(template)
 
-    # Determine Tier
+    # Determine Tier with Gated Overrides
     has_high_disagreements = any(f.get("severity") == "high" for f in flags)
     has_critical_koota_friction = any(
         k_id in [18, 22, 23, 41] and koota_scores.get(k_id, 1.0) < 0.60
@@ -173,6 +180,12 @@ def classify_tier(
     elif score >= 0.75 and not has_high_disagreements and not has_critical_koota_friction:
         tier = "strong match"
     else:
+        tier = "compatible with flagged friction points"
+
+    # Enforce Gated Math Tier Ceilings
+    if aggregate.tier_ceiling == "not viable":
+        tier = "not viable"
+    elif aggregate.tier_ceiling == "compatible with flagged friction points" and tier == "strong match":
         tier = "compatible with flagged friction points"
 
     return TierEvaluationResult(

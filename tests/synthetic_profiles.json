@@ -153,6 +153,9 @@
     "caste_preference": "no_preference",
     "city": "Pune",
     "answers": [
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "engage immediately"},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
       {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
       {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
       {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "5"},
@@ -170,6 +173,9 @@
     "caste_preference": "no_preference",
     "city": "Mumbai",
     "answers": [
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "engage immediately"},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
       {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
       {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
       {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "5"},

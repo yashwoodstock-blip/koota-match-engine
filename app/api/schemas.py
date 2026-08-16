@@ -1,5 +1,5 @@
 """Pydantic schemas for request validation and secure responses."""
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -55,17 +55,40 @@ class DisagreementFlagDTO(BaseModel):
     note: str
 
 
+class ContradictionGateDTO(BaseModel):
+    koota_id: int
+    koota_name: str
+    pillar: str
+    severity: str
+    reason: str
+    penalty_multiplier: float
+    key_tensions: List[str] = []
+
+
+class LLMJudgeInsightDTO(BaseModel):
+    koota_id: int
+    agreement_score: float
+    contradiction: bool
+    reasoning: str
+    key_tensions: List[str] = []
+    provider_used: str = "groq"
+
+
 class MatchResponse(BaseModel):
     profile_a_id: str
     profile_b_id: str
     is_viable: bool
     tier: str  # "not viable" | "compatible with flagged friction points" | "strong match"
     overall_score: Optional[float] = None
+    raw_composite_score: Optional[float] = None
     objective_score: Optional[float] = None
     semantic_score: Optional[float] = None
+    tier_ceiling: Optional[str] = None
     alignment_points: List[str] = []
     friction_points: List[str] = []
     disagreement_flags: List[DisagreementFlagDTO] = []
+    contradiction_gates: List[ContradictionGateDTO] = []
+    llm_judge_insights: Dict[int, LLMJudgeInsightDTO] = {}
     hard_filter_reason: Optional[str] = None
 
 
@@ -78,3 +101,4 @@ class CandidateMatchSummary(BaseModel):
     alignment_points: List[str] = []
     friction_points: List[str] = []
     disagreement_count: int = 0
+    contradiction_count: int = 0

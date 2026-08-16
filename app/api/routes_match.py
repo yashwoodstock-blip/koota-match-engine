@@ -1,13 +1,21 @@
 """Matching API routes for pairwise compatibility scoring and candidate discovery."""
+import asyncio
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models import Profile, Answer, Koota, MatchResult
-from app.api.schemas import MatchResponse, CandidateMatchSummary, DisagreementFlagDTO
+from app.api.schemas import (
+    MatchResponse,
+    CandidateMatchSummary,
+    DisagreementFlagDTO,
+    ContradictionGateDTO,
+    LLMJudgeInsightDTO,
+)
 from app.scoring.objective import calculate_objective_match
 from app.scoring.semantic import score_all_subjective_kootas
+from app.scoring.llm_judge import evaluate_all_top_kootas_llm_judge
 from app.scoring.aggregate import aggregate_scores, AggregateMatchResult
 from app.scoring.tiers import classify_tier
 
@@ -26,6 +34,8 @@ async def load_kootas_metadata(db: AsyncSession) -> Dict[int, Dict[str, Any]]:
             "pillar": k.pillar,
             "question_type": k.question_type,
             "is_hard_filter": k.is_hard_filter,
+            "subjective_questions": k.subjective_questions,
+            "objective_questions": k.objective_questions,
         }
         for k in kootas
     }
@@ -38,7 +48,7 @@ async def score_match(
     max_age_gap: int = Query(2, description="Maximum allowable age gap (default 2 years)"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Calculate full 42-Koota compatibility between two profiles.
+    """Calculate full 42-Koota compatibility between two profiles using NLI, LLM Judge, and Gated Aggregation.
     
     CRITICAL PRIVACY RULE: Zero raw answer text or Layer-1 demographics are returned.
     """
@@ -78,14 +88,18 @@ async def score_match(
             is_viable=False,
             hard_filter_reason=obj_result.hard_filter_reason,
             overall_score=None,
+            raw_composite_score=None,
             objective_score=None,
             semantic_score=None,
+            tier_ceiling="not viable",
             koota_scores={},
             disagreement_flags=[],
+            contradiction_gates=[],
+            llm_judge_insights={},
         )
         tier_eval = classify_tier(aggregate, kootas_meta)
 
-        # Store match result in DB
+        # Store match record
         match_record = MatchResult(
             profile_a_id=profile_a_id,
             profile_b_id=profile_b_id,
@@ -108,29 +122,35 @@ async def score_match(
             is_viable=False,
             tier=tier_eval.tier,
             overall_score=None,
+            raw_composite_score=None,
             objective_score=None,
             semantic_score=None,
+            tier_ceiling="not viable",
             alignment_points=tier_eval.alignment_points,
             friction_points=tier_eval.friction_points,
             disagreement_flags=[],
+            contradiction_gates=[],
+            llm_judge_insights={},
             hard_filter_reason=obj_result.hard_filter_reason,
         )
 
-    # 5. Semantic Scorer for Subjective Answers
-    semantic_koota_scores, overall_semantic = await score_all_subjective_kootas(
-        answers_a, answers_b, kootas_meta
+    # 5. Concurrently run Semantic Cosine + Parallel LLM Judge for top subjective Kootas
+    (semantic_koota_scores, overall_semantic), llm_judge_map = await asyncio.gather(
+        score_all_subjective_kootas(answers_a, answers_b, kootas_meta),
+        evaluate_all_top_kootas_llm_judge(answers_a, answers_b, kootas_meta),
     )
 
-    # 6. Score Aggregator with Disagreement Detection
+    # 6. Gated Score Aggregator with Disagreement & Contradiction Detection
     aggregate = aggregate_scores(
         is_viable=True,
         hard_filter_reason=None,
         objective_koota_scores=obj_result.koota_scores,
         semantic_koota_scores=semantic_koota_scores,
         kootas_metadata=kootas_meta,
+        llm_judge_results=llm_judge_map,
     )
 
-    # 7. Tier Classifier & Templated Generator
+    # 7. Tier Classifier & Templated Insights with Tier Ceilings
     tier_eval = classify_tier(aggregate, kootas_meta)
 
     # 8. Persist Match Result
@@ -156,11 +176,17 @@ async def score_match(
         is_viable=True,
         tier=tier_eval.tier,
         overall_score=aggregate.overall_score,
+        raw_composite_score=aggregate.raw_composite_score,
         objective_score=aggregate.objective_score,
         semantic_score=aggregate.semantic_score,
+        tier_ceiling=aggregate.tier_ceiling,
         alignment_points=tier_eval.alignment_points,
         friction_points=tier_eval.friction_points,
         disagreement_flags=[DisagreementFlagDTO(**flag) for flag in aggregate.disagreement_flags],
+        contradiction_gates=[ContradictionGateDTO(**gate) for gate in aggregate.contradiction_gates],
+        llm_judge_insights={
+            k: LLMJudgeInsightDTO(**v) for k, v in aggregate.llm_judge_insights.items()
+        },
         hard_filter_reason=None,
     )
 
@@ -204,21 +230,23 @@ async def get_ranked_candidates(
         if not obj_res.is_viable:
             continue
 
-        # Semantic
-        semantic_scores, _ = await score_all_subjective_kootas(
-            target_answers, cand_answers, kootas_meta
+        # Semantic & Judge
+        (semantic_scores, _), llm_judge_map = await asyncio.gather(
+            score_all_subjective_kootas(target_answers, cand_answers, kootas_meta),
+            evaluate_all_top_kootas_llm_judge(target_answers, cand_answers, kootas_meta),
         )
 
-        # Aggregate
+        # Aggregate with Gated Math
         agg = aggregate_scores(
             is_viable=True,
             hard_filter_reason=None,
             objective_koota_scores=obj_res.koota_scores,
             semantic_koota_scores=semantic_scores,
             kootas_metadata=kootas_meta,
+            llm_judge_results=llm_judge_map,
         )
 
-        if agg.overall_score is not None and agg.overall_score >= min_score:
+        if agg.overall_score is not None and agg.overall_score >= min_score and agg.tier_ceiling != "not viable":
             tier_eval = classify_tier(agg, kootas_meta)
             ranked_list.append(
                 CandidateMatchSummary(
@@ -230,6 +258,7 @@ async def get_ranked_candidates(
                     alignment_points=tier_eval.alignment_points,
                     friction_points=tier_eval.friction_points,
                     disagreement_count=len(agg.disagreement_flags),
+                    contradiction_count=len(agg.contradiction_gates),
                 )
             )
 
