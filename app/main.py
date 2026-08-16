@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.session import init_db
 from app.db.seed_kootas import seed_kootas
+from app.api.routes_profiles import router as profiles_router
+from app.api.routes_match import router as match_router
 
 
 @asynccontextmanager
@@ -28,6 +30,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Wire API routers
+app.include_router(profiles_router)
+app.include_router(match_router)
 
 
 @app.get("/health", tags=["System"])

@@ -1,6 +1,6 @@
 """SQLAlchemy models for Koota Match Engine."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Any
 from sqlalchemy import (
     Column,
@@ -16,6 +16,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Koota(Base):
@@ -47,7 +51,7 @@ class Profile(Base):
     caste = Column(String(100), nullable=True)
     caste_preference = Column(String(100), nullable=True)  # "no_preference", "same_caste_preferred", "same_caste_required"
     city = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     answers = relationship("Answer", back_populates="profile", cascade="all, delete-orphan")
 
@@ -88,7 +92,7 @@ class MatchResult(Base):
     disagreement_flags = Column(JSON, default=list, nullable=False)
     alignment_points = Column(JSON, default=list, nullable=False)
     friction_points = Column(JSON, default=list, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     def __repr__(self) -> str:
         return f"<MatchResult a='{self.profile_a_id}' b='{self.profile_b_id}' tier='{self.tier}' score={self.overall_score}>"
