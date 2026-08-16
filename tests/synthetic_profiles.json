@@ -1,0 +1,306 @@
+[
+  {
+    "id": "syn-01-aarav",
+    "name": "Aarav Sharma",
+    "age": 28,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Brahmin",
+    "caste_preference": "no_preference",
+    "city": "Bengaluru",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "nuclear"},
+      {"koota_id": 1, "question_index": 1, "question_type": "objective", "raw_value": "1 sibling, elder"},
+      {"koota_id": 1, "question_index": 0, "question_type": "subjective", "raw_value": "Watching parents support each other through early financial struggles taught me partnership."},
+      {"koota_id": 1, "question_index": 1, "question_type": "subjective", "raw_value": "Unquestioned deference without open dialogue is something I disagree with."},
+      {"koota_id": 2, "question_index": 0, "question_type": "objective", "raw_value": "morning"},
+      {"koota_id": 2, "question_index": 1, "question_type": "objective", "raw_value": "rest and family visits"},
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "engage immediately"},
+      {"koota_id": 7, "question_index": 1, "question_type": "objective", "raw_value": "same-day"},
+      {"koota_id": 7, "question_index": 0, "question_type": "subjective", "raw_value": "We sit down, articulate feelings without shouting, and find a pragmatic middle ground."},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 12, "question_index": 1, "question_type": "objective", "raw_value": "open to it"},
+      {"koota_id": 12, "question_index": 0, "question_type": "subjective", "raw_value": "Commitment means choosing to work through difficult seasons together with empathy."},
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Weekly"},
+      {"koota_id": 18, "question_index": 1, "question_type": "objective", "raw_value": "Flexible/Depends"},
+      {"koota_id": 18, "question_index": 0, "question_type": "subjective", "raw_value": "Deep respect and warm weekly connection with parents, while keeping marital decisions strictly bilateral."},
+      {"koota_id": 18, "question_index": 1, "question_type": "subjective", "raw_value": "Acknowledge in-law perspectives respectfully but handle primary spouse alignment first."},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
+      {"koota_id": 22, "question_index": 0, "question_type": "objective", "raw_value": "equal/shared"},
+      {"koota_id": 22, "question_index": 0, "question_type": "subjective", "raw_value": "Complete co-ownership of chores, finances, and parenting responsibilities."},
+      {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
+      {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
+      {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "4"},
+      {"koota_id": 23, "question_index": 0, "question_type": "subjective", "raw_value": "We mutually prioritize each other's career milestones and support ambitious pursuits."},
+      {"koota_id": 24, "question_index": 0, "question_type": "objective", "raw_value": "both"},
+      {"koota_id": 25, "question_index": 0, "question_type": "objective", "raw_value": "4"},
+      {"koota_id": 31, "question_index": 0, "question_type": "objective", "raw_value": "yes"},
+      {"koota_id": 32, "question_index": 0, "question_type": "objective", "raw_value": "balanced"},
+      {"koota_id": 41, "question_index": 0, "question_type": "subjective", "raw_value": "Marriage is a sacred lifelong journey of companionship, mutual growth, and shared purpose."}
+    ]
+  },
+  {
+    "id": "syn-02-ananya",
+    "name": "Ananya Iyer",
+    "age": 27,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Brahmin",
+    "caste_preference": "no_preference",
+    "city": "Bengaluru",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "nuclear"},
+      {"koota_id": 1, "question_index": 1, "question_type": "objective", "raw_value": "1 sibling, younger"},
+      {"koota_id": 1, "question_index": 0, "question_type": "subjective", "raw_value": "Growing up in a supportive nuclear family shaped my belief in equal partnership and open communication."},
+      {"koota_id": 1, "question_index": 1, "question_type": "subjective", "raw_value": "Rigid expectations around traditional gender roles are values I choose not to carry forward."},
+      {"koota_id": 2, "question_index": 0, "question_type": "objective", "raw_value": "morning"},
+      {"koota_id": 2, "question_index": 1, "question_type": "objective", "raw_value": "rest and family visits"},
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "engage immediately"},
+      {"koota_id": 7, "question_index": 1, "question_type": "objective", "raw_value": "same-day"},
+      {"koota_id": 7, "question_index": 0, "question_type": "subjective", "raw_value": "We sit down, listen actively, and resolve conflict calmly before sleeping."},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 12, "question_index": 1, "question_type": "objective", "raw_value": "open to it"},
+      {"koota_id": 12, "question_index": 0, "question_type": "subjective", "raw_value": "Commitment is enduring companionship through thick and thin with mutual respect."},
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Weekly"},
+      {"koota_id": 18, "question_index": 1, "question_type": "objective", "raw_value": "Flexible/Depends"},
+      {"koota_id": 18, "question_index": 0, "question_type": "subjective", "raw_value": "Honoring both sets of parents warmly with frequent visits while maintaining our couple autonomy."},
+      {"koota_id": 18, "question_index": 1, "question_type": "subjective", "raw_value": "Constructive boundaries with parents where the couple presents a united front."},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
+      {"koota_id": 22, "question_index": 0, "question_type": "objective", "raw_value": "equal/shared"},
+      {"koota_id": 22, "question_index": 0, "question_type": "subjective", "raw_value": "Shared household management where both partners cook, clean, and manage finances equally."},
+      {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
+      {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
+      {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "4"},
+      {"koota_id": 23, "question_index": 0, "question_type": "subjective", "raw_value": "Full professional autonomy and mutual celebration of career growth for both partners."},
+      {"koota_id": 24, "question_index": 0, "question_type": "objective", "raw_value": "both"},
+      {"koota_id": 25, "question_index": 0, "question_type": "objective", "raw_value": "4"},
+      {"koota_id": 31, "question_index": 0, "question_type": "objective", "raw_value": "yes"},
+      {"koota_id": 32, "question_index": 0, "question_type": "objective", "raw_value": "balanced"},
+      {"koota_id": 41, "question_index": 0, "question_type": "subjective", "raw_value": "Marriage is a sacred lifelong journey of companionship, mutual growth, and shared purpose."}
+    ]
+  },
+  {
+    "id": "syn-03-vikram",
+    "name": "Vikram Singh",
+    "age": 36,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Rajput",
+    "caste_preference": "same_caste_required",
+    "city": "Jaipur",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "joint"},
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Daily"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "joint family"}
+    ]
+  },
+  {
+    "id": "syn-04-pooja",
+    "name": "Pooja Gupta",
+    "age": 25,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Bania",
+    "caste_preference": "no_preference",
+    "city": "Delhi",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "nuclear"},
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Occasional"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear different city"}
+    ]
+  },
+  {
+    "id": "syn-05-kabir",
+    "name": "Kabir Verma",
+    "age": 29,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Kayastha",
+    "caste_preference": "no_preference",
+    "city": "Lucknow",
+    "answers": [
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Weekly"},
+      {"koota_id": 18, "question_index": 1, "question_type": "objective", "raw_value": "Yes"},
+      {"koota_id": 18, "question_index": 0, "question_type": "subjective", "raw_value": "Complete traditional deference to my parents in all family matters, touching feet daily and parents having primary veto over household rules."},
+      {"koota_id": 18, "question_index": 1, "question_type": "subjective", "raw_value": "My parents always come first before any personal spousal preferences."},
+      {"koota_id": 22, "question_index": 0, "question_type": "objective", "raw_value": "equal/shared"}
+    ]
+  },
+  {
+    "id": "syn-06-neha",
+    "name": "Neha Joshi",
+    "age": 28,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Kayastha",
+    "caste_preference": "no_preference",
+    "city": "Delhi",
+    "answers": [
+      {"koota_id": 18, "question_index": 0, "question_type": "objective", "raw_value": "Weekly"},
+      {"koota_id": 18, "question_index": 1, "question_type": "objective", "raw_value": "Yes"},
+      {"koota_id": 18, "question_index": 0, "question_type": "subjective", "raw_value": "I refuse any in-law interference or traditional patriarchal rituals; parents should have zero say in our private life and keep strictly distant boundaries."},
+      {"koota_id": 18, "question_index": 1, "question_type": "subjective", "raw_value": "Spouse must side with me against parents in every disagreement without question."},
+      {"koota_id": 22, "question_index": 0, "question_type": "objective", "raw_value": "equal/shared"}
+    ]
+  },
+  {
+    "id": "syn-07-rohan",
+    "name": "Rohan Deshmukh",
+    "age": 30,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Maratha",
+    "caste_preference": "no_preference",
+    "city": "Pune",
+    "answers": [
+      {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
+      {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
+      {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "5"},
+      {"koota_id": 23, "question_index": 0, "question_type": "subjective", "raw_value": "My partner must relocate wherever my career leads and prioritize household duties over long work hours whenever family obligations require sacrifice."},
+      {"koota_id": 23, "question_index": 1, "question_type": "subjective", "raw_value": "Husband career is primary income driver for the family legacy."}
+    ]
+  },
+  {
+    "id": "syn-08-ishita",
+    "name": "Ishita Sen",
+    "age": 29,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Maratha",
+    "caste_preference": "no_preference",
+    "city": "Mumbai",
+    "answers": [
+      {"koota_id": 23, "question_index": 0, "question_type": "objective", "raw_value": "continue with full support"},
+      {"koota_id": 23, "question_index": 1, "question_type": "objective", "raw_value": "depends"},
+      {"koota_id": 23, "question_index": 2, "question_type": "objective", "raw_value": "5"},
+      {"koota_id": 23, "question_index": 0, "question_type": "subjective", "raw_value": "My career ambition and startup journey is central to my existence; I will not sacrifice my professional goals or relocate for someone else's job under any circumstances."},
+      {"koota_id": 23, "question_index": 1, "question_type": "subjective", "raw_value": "Total career equality; no one's career takes back seat."}
+    ]
+  },
+  {
+    "id": "syn-09-tariq",
+    "name": "Tariq Khan",
+    "age": 31,
+    "gender": "male",
+    "religion": "Muslim",
+    "caste": "Sunni",
+    "caste_preference": "no_preference",
+    "city": "Hyderabad",
+    "answers": [
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "need space first"},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
+      {"koota_id": 37, "question_index": 0, "question_type": "objective", "raw_value": "4"}
+    ]
+  },
+  {
+    "id": "syn-10-farida",
+    "name": "Farida Begum",
+    "age": 30,
+    "gender": "female",
+    "religion": "Muslim",
+    "caste": "Sunni",
+    "caste_preference": "no_preference",
+    "city": "Hyderabad",
+    "answers": [
+      {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "need space first"},
+      {"koota_id": 12, "question_index": 0, "question_type": "objective", "raw_value": "only in extreme circumstances"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "nuclear same city"},
+      {"koota_id": 37, "question_index": 0, "question_type": "objective", "raw_value": "4"}
+    ]
+  },
+  {
+    "id": "syn-11-harpreet",
+    "name": "Harpreet Singh",
+    "age": 27,
+    "gender": "male",
+    "religion": "Sikh",
+    "caste": "Jat Sikh",
+    "caste_preference": "same_caste_preferred",
+    "city": "Chandigarh",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "joint"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "joint family"},
+      {"koota_id": 24, "question_index": 0, "question_type": "objective", "raw_value": "both"},
+      {"koota_id": 36, "question_index": 0, "question_type": "objective", "raw_value": "vegetarian"}
+    ]
+  },
+  {
+    "id": "syn-12-simran",
+    "name": "Simran Kaur",
+    "age": 26,
+    "gender": "female",
+    "religion": "Sikh",
+    "caste": "Jat Sikh",
+    "caste_preference": "same_caste_preferred",
+    "city": "Amritsar",
+    "answers": [
+      {"koota_id": 1, "question_index": 0, "question_type": "objective", "raw_value": "joint"},
+      {"koota_id": 21, "question_index": 0, "question_type": "objective", "raw_value": "joint family"},
+      {"koota_id": 24, "question_index": 0, "question_type": "objective", "raw_value": "both"},
+      {"koota_id": 36, "question_index": 0, "question_type": "objective", "raw_value": "vegetarian"}
+    ]
+  },
+  {
+    "id": "syn-13-karthik",
+    "name": "Karthik Raja",
+    "age": 30,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Mudaliar",
+    "caste_preference": "no_preference",
+    "city": "Chennai",
+    "answers": [
+      {"koota_id": 2, "question_index": 0, "question_type": "objective", "raw_value": "morning"},
+      {"koota_id": 25, "question_index": 0, "question_type": "objective", "raw_value": "5"},
+      {"koota_id": 26, "question_index": 0, "question_type": "objective", "raw_value": "joint/shared control"},
+      {"koota_id": 41, "question_index": 0, "question_type": "subjective", "raw_value": "Marriage is a deeply grounding anchor providing stability and shared life purpose."}
+    ]
+  },
+  {
+    "id": "syn-14-divya",
+    "name": "Divya Krishnan",
+    "age": 29,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Mudaliar",
+    "caste_preference": "no_preference",
+    "city": "Chennai",
+    "answers": [
+      {"koota_id": 2, "question_index": 0, "question_type": "objective", "raw_value": "morning"},
+      {"koota_id": 25, "question_index": 0, "question_type": "objective", "raw_value": "5"},
+      {"koota_id": 26, "question_index": 0, "question_type": "objective", "raw_value": "joint/shared control"},
+      {"koota_id": 41, "question_index": 0, "question_type": "subjective", "raw_value": "Marriage is a mutual sanctuary for lifelong growth, stability, and affection."}
+    ]
+  },
+  {
+    "id": "syn-15-arjun",
+    "name": "Arjun Banerjee",
+    "age": 32,
+    "gender": "male",
+    "religion": "Hindu",
+    "caste": "Brahmin",
+    "caste_preference": "no_preference",
+    "city": "Kolkata",
+    "answers": [
+      {"koota_id": 8, "question_index": 0, "question_type": "objective", "raw_value": "gentle/indirect"},
+      {"koota_id": 15, "question_index": 0, "question_type": "objective", "raw_value": "high"},
+      {"koota_id": 36, "question_index": 0, "question_type": "objective", "raw_value": "non-vegetarian"}
+    ]
+  },
+  {
+    "id": "syn-16-shreya",
+    "name": "Shreya Mukherjee",
+    "age": 31,
+    "gender": "female",
+    "religion": "Hindu",
+    "caste": "Brahmin",
+    "caste_preference": "no_preference",
+    "city": "Kolkata",
+    "answers": [
+      {"koota_id": 8, "question_index": 0, "question_type": "objective", "raw_value": "gentle/indirect"},
+      {"koota_id": 15, "question_index": 0, "question_type": "objective", "raw_value": "high"},
+      {"koota_id": 36, "question_index": 0, "question_type": "objective", "raw_value": "non-vegetarian"}
+    ]
+  }
+]

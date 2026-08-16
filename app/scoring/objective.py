@@ -28,6 +28,11 @@ PARTIAL_CREDIT_TABLE: Dict[Tuple[int, int], Dict[frozenset, float]] = {
         frozenset(["semi-urban", "rural"]): 0.70,
         frozenset(["urban", "rural"]): 0.40,
     },
+    (1, 1): {
+        frozenset(["1 sibling, elder", "1 sibling, younger"]): 0.85,
+        frozenset(["1 sibling", "2 siblings"]): 0.80,
+        frozenset(["only child", "1 sibling"]): 0.70,
+    },
     # Koota 2: Daily Rhythm
     (2, 0): {
         frozenset(["morning", "night"]): 0.20,

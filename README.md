@@ -82,10 +82,14 @@ cp .env.example .env
 | `HF_EMBEDDING_MODEL` | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
 | `RENDER_EXTERNAL_URL` | Render service URL for keepalive ping |
 
-### 3. Seed the 42 Kootas
+### 3. Seed the 42 Kootas & Optional Synthetic Profiles
 
 ```bash
+# Seed the canonical 42 Kootas question bank
 python -m app.db.seed_kootas
+
+# (Optional) Seed 16 realistic synthetic profiles with test answers
+python -m app.db.seed_synthetic
 ```
 
 ### 4. Run the Local Development Server
@@ -101,6 +105,33 @@ Interactive API documentation will be available at [http://127.0.0.1:8000/docs](
 ```bash
 pytest -v
 ```
+
+---
+
+## Free-Tier Deployment Guide (Render + Supabase)
+
+1. **Supabase Setup**:
+   - Create a free project at [supabase.com](https://supabase.com).
+   - In SQL Editor, enable pgvector (optional): `CREATE EXTENSION IF NOT EXISTS vector;`.
+   - Copy connection string URI from Project Settings -> Database.
+
+2. **Render Setup**:
+   - Create a new **Web Service** on [render.com](https://render.com) connected to your GitHub repository.
+   - Environment: `Python 3`
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Add Environment Variables in Render Dashboard:
+     - `DATABASE_URL`: `postgresql+asyncpg://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
+     - `HF_API_TOKEN`: `hf_...` (Free Hugging Face token)
+     - `HF_EMBEDDING_MODEL`: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+     - `SUPABASE_URL`: `https://[PROJECT-REF].supabase.co`
+     - `SUPABASE_KEY`: `[ANON-KEY]`
+
+3. **GitHub Keep-Alive Configuration**:
+   - In your GitHub Repository Settings -> Secrets and variables -> Actions:
+     - Add `RENDER_SERVICE_URL` (e.g. `https://koota-match-engine.onrender.com`)
+     - Add `SUPABASE_URL` and `SUPABASE_KEY`
+   - GitHub Actions will ping both endpoints every 3 days automatically.
 
 ---
 
