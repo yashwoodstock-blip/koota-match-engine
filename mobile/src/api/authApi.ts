@@ -63,6 +63,49 @@ export interface CompletionStatusResponse {
   total_required?: number;
 }
 
+export interface WeeklyMatchDTO {
+  candidate_id: string;
+  candidate_name: string;
+  score: number;
+  tier: string;
+  alignment_points: string[];
+  friction_points: string[];
+  contradiction_gates?: any[];
+  social_overlap_score?: number;
+  shared_account_count?: number;
+  interest_status: 'none' | 'pending' | 'mutual' | 'declined';
+  is_mutual: boolean;
+  generated_at?: string;
+}
+
+export interface WeeklyMatchListResponse {
+  profile_id: string;
+  total_matches: number;
+  mutual_matches_count: number;
+  matches: WeeklyMatchDTO[];
+  is_precomputed: boolean;
+}
+
+export interface InterestResponse {
+  profile_id: string;
+  target_profile_id: string;
+  status: 'pending' | 'mutual' | 'declined';
+  is_mutual: boolean;
+  expressed_at?: string;
+}
+
+export interface CandidateInterestStatus {
+  candidate_id: string;
+  status: 'none' | 'pending' | 'mutual' | 'declined';
+  is_mutual: boolean;
+  expressed_at?: string;
+}
+
+export interface InterestStatusListResponse {
+  profile_id: string;
+  statuses: CandidateInterestStatus[];
+}
+
 /**
  * Redeem an 8-character invite code to obtain a signed invite session token.
  */
@@ -148,6 +191,52 @@ export async function getProfileCompletion(
   profileId: string
 ): Promise<CompletionStatusResponse> {
   return await apiClient<CompletionStatusResponse>(`/profiles/${profileId}/completion`, {
+    method: 'GET',
+    token,
+  });
+}
+
+/**
+ * Retrieve precomputed weekly matches for a profile.
+ */
+export async function getWeeklyMatches(
+  token: string,
+  profileId: string
+): Promise<WeeklyMatchListResponse> {
+  return await apiClient<WeeklyMatchListResponse>(`/profiles/${profileId}/weekly-matches`, {
+    method: 'GET',
+    token,
+  });
+}
+
+/**
+ * Express pending interest or terminal decline on a candidate.
+ */
+export async function postInterestAction(
+  token: string,
+  profileId: string,
+  targetProfileId: string,
+  action: 'pending' | 'declined'
+): Promise<InterestResponse> {
+  return await apiClient<InterestResponse>('/interest', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({
+      profile_id: profileId,
+      target_profile_id: targetProfileId,
+      action,
+    }),
+  });
+}
+
+/**
+ * Retrieve interest status list under staged disclosure rules.
+ */
+export async function getInterestStatusList(
+  token: string,
+  profileId: string
+): Promise<InterestStatusListResponse> {
+  return await apiClient<InterestStatusListResponse>(`/interest/${profileId}/status`, {
     method: 'GET',
     token,
   });

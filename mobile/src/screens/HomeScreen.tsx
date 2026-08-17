@@ -7,29 +7,52 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { useAuth } from '../context/AuthContext';
+import { MainStackParamList } from '../navigation/types';
+
+type HomeNavProp = NativeStackNavigationProp<MainStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<HomeNavProp>();
   const { profile, logout } = useAuth();
+
+  const handleOpenMatches = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('WeeklyMatches');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>KOOTA MATCH DASHBOARD</Text>
-          <Text style={styles.greeting}>Welcome, {profile?.name || 'Member'}</Text>
+          <Text style={styles.eyebrow}>KOOTA MATCH • 42-DIMENSION ENGINE</Text>
+          <Text style={styles.greeting}>Namaste, {profile?.name || 'Member'}</Text>
           <Text style={styles.email}>{profile?.email}</Text>
         </View>
 
+        {/* Weekly Matches Banner Card */}
         <View style={styles.statusCard}>
-          <Text style={styles.cardEyebrow}>CURRENT STATUS</Text>
-          <Text style={styles.cardTitle}>Cohort Verification Complete</Text>
+          <Text style={styles.cardEyebrow}>CURATED SUNDAY COHORT</Text>
+          <Text style={styles.cardTitle}>Precomputed Matches Ready</Text>
           <Text style={styles.cardBody}>
-            Your profile is linked to the 42-Koota Matching Engine. Sunday candidate precomputations will appear here.
+            Your profile has been evaluated against the 42-Koota scientific matrix, NLI contradiction checks, and LLM judge shortlists.
           </Text>
+
+          <TouchableOpacity
+            style={styles.viewMatchesBtn}
+            onPress={handleOpenMatches}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="View Weekly Matches"
+          >
+            <Text style={styles.viewMatchesBtnText}>Explore Weekly Matches →</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -79,44 +102,63 @@ const styles = StyleSheet.create({
   },
   statusCard: {
     backgroundColor: Colors.surface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 22,
     shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardEyebrow: {
     ...Typography.caption,
     color: Colors.accentDark,
     letterSpacing: 1,
     marginBottom: 6,
+    fontWeight: '700',
   },
   cardTitle: {
-    ...Typography.subheadline,
+    ...Typography.headline,
+    fontSize: 20,
     color: Colors.text,
-    fontWeight: '700',
+    fontFamily: 'serif',
     marginBottom: 8,
   },
   cardBody: {
     ...Typography.bodySecondary,
-    lineHeight: 20,
+    lineHeight: 21,
+    marginBottom: 20,
+  },
+  viewMatchesBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  viewMatchesBtnText: {
+    ...Typography.button,
+    fontSize: 15,
   },
   logoutButton: {
     backgroundColor: Colors.backgroundSecondary,
     borderWidth: 1,
     borderColor: Colors.border,
     width: '100%',
-    paddingVertical: 15,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   logoutButtonText: {
     ...Typography.button,
     color: Colors.textSecondary,
+    fontSize: 14,
   },
 });
