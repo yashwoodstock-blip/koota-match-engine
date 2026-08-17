@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get database URL from environment or default to local async SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./koota.db")
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./koota.db"
 
 # If URL is standard postgresql:// convert to postgresql+asyncpg:// for async SQLAlchemy
-if DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif DATABASE_URL.startswith("postgres://"):
+if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # Async engine
 engine_kwargs = {"echo": False, "future": True}

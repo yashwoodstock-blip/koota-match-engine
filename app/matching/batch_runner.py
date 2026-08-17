@@ -4,8 +4,9 @@ import time
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import async_session
+from app.db.session import async_session, init_db
 from app.models import Profile, Answer, Koota
+from app.db.seed_kootas import seed_kootas
 from app.api.routes_match import load_kootas_metadata
 from app.matching.candidates_batch import run_candidates_funnel_for_profile
 
@@ -50,6 +51,9 @@ async def run_weekly_matching_batch(max_users: Optional[int] = None):
     """Sequentially execute candidate funnels across all active users."""
     print("=== Starting Weekly Match Precomputation Batch Job ===", flush=True)
     start_time = time.time()
+
+    await init_db()
+    await seed_kootas()
 
     async with async_session() as db:
         kootas_meta = await load_kootas_metadata(db)
