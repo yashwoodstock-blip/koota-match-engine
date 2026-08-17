@@ -1,18 +1,26 @@
-"""Profile management and answer submission API routes."""
-from typing import List
+"""Profile management, demographic edits, and answer submission API routes."""
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.models import Profile, Answer, Koota
+from app.models import Profile, Answer, Koota, utc_now
 from app.api.schemas import (
     ProfileCreate,
+    ProfileUpdate,
     ProfileResponse,
+    ProfileUpdateResponse,
+    ProfileDeleteResponse,
     AnswerItem,
     BulkAnswersSubmit,
     ProfileCompletionStatus,
 )
+from app.auth.deps import get_current_authenticated_profile, verify_profile_ownership
 from app.scoring.semantic import get_embedding
+from app.scoring.invalidation import (
+    invalidate_stale_matches_for_profile,
+    cascade_delete_profile,
+)
 
 router = APIRouter(prefix="/profiles", tags=["Profiles"])
 
@@ -57,6 +65,8 @@ async def create_profile(profile_in: ProfileCreate, db: AsyncSession = Depends(g
         caste_preference=profile_in.caste_preference or "no_preference",
         city=profile_in.city,
         invite_code=code_to_consume,
+        created_at=utc_now(),
+        updated_at=utc_now(),
     )
     db.add(profile)
     await db.commit()
@@ -65,10 +75,17 @@ async def create_profile(profile_in: ProfileCreate, db: AsyncSession = Depends(g
     return ProfileResponse(
         id=profile.id,
         name=profile.name,
+        age=profile.age,
+        gender=profile.gender,
+        religion=profile.religion,
+        caste=profile.caste,
+        caste_preference=profile.caste_preference,
+        city=profile.city,
         is_complete=False,
         answered_kootas_count=0,
         total_kootas_count=42,
         created_at=profile.created_at,
+        updated_at=profile.updated_at,
     )
 
 
@@ -90,10 +107,96 @@ async def get_profile(profile_id: str, db: AsyncSession = Depends(get_db)):
     return ProfileResponse(
         id=profile.id,
         name=profile.name,
+        age=profile.age,
+        gender=profile.gender,
+        religion=profile.religion,
+        caste=profile.caste,
+        caste_preference=profile.caste_preference,
+        city=profile.city,
         is_complete=(answered_count >= 42),
         answered_kootas_count=answered_count,
         total_kootas_count=42,
         created_at=profile.created_at,
+        updated_at=getattr(profile, "updated_at", profile.created_at),
+    )
+
+
+@router.patch("/{profile_id}", response_model=ProfileUpdateResponse)
+async def update_profile(
+    profile_id: str,
+    payload: ProfileUpdate,
+    current_profile: Profile = Depends(get_current_authenticated_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Partially update Layer 1 demographics with ownership gating and stale match invalidation.
+    
+    Hard-Filter Rules:
+    - Altering religion or required-caste preferences flags hard_filter_changed=True and issues an explicit warning.
+    - Purges precomputed WeeklyMatchList and MatchResult caches to guarantee no stale compatibility scores.
+    """
+    verify_profile_ownership(profile_id, current_profile)
+
+    hard_filter_changed = False
+    warning = None
+
+    # Check religion modification (Universal Hard Filter)
+    if payload.religion is not None and payload.religion != current_profile.religion:
+        hard_filter_changed = True
+
+    # Check caste / caste_preference modification (Koota 42 Hard Filter)
+    target_caste_pref = payload.caste_preference if payload.caste_preference is not None else current_profile.caste_preference
+    if target_caste_pref == "same_caste_required":
+        if (payload.caste is not None and payload.caste != current_profile.caste) or (
+            payload.caste_preference is not None and payload.caste_preference != current_profile.caste_preference
+        ):
+            hard_filter_changed = True
+    elif (
+        payload.caste_preference is not None
+        and payload.caste_preference != current_profile.caste_preference
+        and current_profile.caste_preference == "same_caste_required"
+    ):
+        hard_filter_changed = True
+
+    if hard_filter_changed:
+        warning = "Updating hard-filter demographic preferences (religion/caste) resets your active candidate pool."
+
+    # Apply partial updates
+    if payload.name is not None:
+        current_profile.name = payload.name
+    if payload.age is not None:
+        current_profile.age = payload.age
+    if payload.gender is not None:
+        current_profile.gender = payload.gender
+    if payload.religion is not None:
+        current_profile.religion = payload.religion
+    if payload.caste is not None:
+        current_profile.caste = payload.caste
+    if payload.caste_preference is not None:
+        current_profile.caste_preference = payload.caste_preference
+    if payload.city is not None:
+        current_profile.city = payload.city
+
+    current_profile.updated_at = utc_now()
+
+    # Invalidate stale match caches
+    await invalidate_stale_matches_for_profile(db, profile_id)
+
+    await db.commit()
+    await db.refresh(current_profile)
+
+    return ProfileUpdateResponse(
+        id=current_profile.id,
+        name=current_profile.name,
+        age=current_profile.age,
+        gender=current_profile.gender,
+        religion=current_profile.religion,
+        caste=current_profile.caste,
+        caste_preference=current_profile.caste_preference,
+        city=current_profile.city,
+        stale_matches_invalidated=True,
+        hard_filter_changed=hard_filter_changed,
+        warning=warning,
+        updated_at=current_profile.updated_at,
     )
 
 
@@ -103,7 +206,7 @@ async def submit_answers(
     payload: BulkAnswersSubmit,
     db: AsyncSession = Depends(get_db),
 ):
-    """Submit or update answers for a profile. Caches embeddings for subjective answers."""
+    """Explicit UPSERT for 42-Koota answers with embedding recomputation and stale match invalidation."""
     stmt = select(Profile).where(Profile.id == profile_id)
     result = await db.execute(stmt)
     profile = result.scalar_one_or_none()
@@ -112,7 +215,7 @@ async def submit_answers(
 
     submitted_count = 0
     for ans_item in payload.answers:
-        # Check if answer exists
+        # Check if answer exists for this (profile, koota, question_index, question_type)
         existing_stmt = select(Answer).where(
             Answer.profile_id == profile_id,
             Answer.koota_id == ans_item.koota_id,
@@ -128,13 +231,13 @@ async def submit_answers(
             try:
                 embedding = await get_embedding(ans_item.raw_value)
             except Exception:
-                # Fallback to None if external HF is temporarily unavailable; will compute on match
                 embedding = None
 
         if existing_ans:
             existing_ans.raw_value = ans_item.raw_value
             if embedding:
                 existing_ans.embedding = embedding
+            existing_ans.updated_at = utc_now()
         else:
             new_ans = Answer(
                 profile_id=profile_id,
@@ -143,13 +246,41 @@ async def submit_answers(
                 question_type=ans_item.question_type,
                 raw_value=ans_item.raw_value,
                 embedding=embedding,
+                created_at=utc_now(),
+                updated_at=utc_now(),
             )
             db.add(new_ans)
 
         submitted_count += 1
 
+    # Invalidate stale match caches for this profile
+    await invalidate_stale_matches_for_profile(db, profile_id)
+
     await db.commit()
-    return {"status": "success", "submitted_answers_count": submitted_count}
+    return {
+        "status": "success",
+        "submitted_answers_count": submitted_count,
+        "stale_matches_invalidated": True,
+    }
+
+
+@router.delete("/{profile_id}", response_model=ProfileDeleteResponse, status_code=status.HTTP_200_OK)
+async def delete_profile_endpoint(
+    profile_id: str,
+    current_profile: Profile = Depends(get_current_authenticated_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently delete profile and cascade all relational rows in compliance with DPDP."""
+    verify_profile_ownership(profile_id, current_profile)
+
+    await cascade_delete_profile(db, profile_id)
+    await db.commit()
+
+    return ProfileDeleteResponse(
+        status="success",
+        message="Profile and all associated data permanently deleted in compliance with DPDP.",
+        deleted_profile_id=profile_id,
+    )
 
 
 @router.get("/{profile_id}/completion", response_model=ProfileCompletionStatus)

@@ -55,6 +55,7 @@ class Profile(Base):
     city = Column(String(100), nullable=True)
     invite_code = Column(String(32), nullable=True, index=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     answers = relationship("Answer", back_populates="profile", cascade="all, delete-orphan")
     weekly_matches = relationship(
@@ -100,9 +101,14 @@ class Answer(Base):
     raw_value = Column(Text, nullable=False)  # raw answer text or option value
     embedding = Column(JSON, nullable=True)  # List of 384 floats for subjective questions
     created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     profile = relationship("Profile", back_populates="answers")
     koota = relationship("Koota", back_populates="answers")
+
+    __table_args__ = (
+        UniqueConstraint("profile_id", "koota_id", "question_index", "question_type", name="uq_profile_koota_question"),
+    )
 
     def __repr__(self) -> str:
         return f"<Answer profile='{self.profile_id}' koota={self.koota_id} q_idx={self.question_index} type='{self.question_type}'>"

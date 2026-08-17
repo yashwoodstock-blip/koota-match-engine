@@ -16,15 +16,55 @@ class ProfileCreate(BaseModel):
     invite_token: Optional[str] = Field(None, json_schema_extra={"example": "signed-token"})
 
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, json_schema_extra={"example": "Aarav Sharma"})
+    age: Optional[int] = Field(None, ge=18, le=100, json_schema_extra={"example": 29})
+    gender: Optional[str] = Field(None, json_schema_extra={"example": "male"})
+    religion: Optional[str] = Field(None, json_schema_extra={"example": "Hindu"})
+    caste: Optional[str] = Field(None, json_schema_extra={"example": "Brahmin"})
+    caste_preference: Optional[str] = Field(None, json_schema_extra={"example": "no_preference"})
+    city: Optional[str] = Field(None, json_schema_extra={"example": "Mumbai"})
+
+
 class ProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    religion: Optional[str] = None
+    caste: Optional[str] = None
+    caste_preference: Optional[str] = None
+    city: Optional[str] = None
     is_complete: bool
     answered_kootas_count: int
     total_kootas_count: int = 42
     created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class ProfileUpdateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    age: int
+    gender: Optional[str] = None
+    religion: str
+    caste: Optional[str] = None
+    caste_preference: Optional[str] = None
+    city: Optional[str] = None
+    stale_matches_invalidated: bool = True
+    hard_filter_changed: bool = False
+    warning: Optional[str] = None
+    updated_at: datetime
+
+
+class ProfileDeleteResponse(BaseModel):
+    status: str = "success"
+    message: str
+    deleted_profile_id: str
 
 
 class AnswerItem(BaseModel):
@@ -36,6 +76,12 @@ class AnswerItem(BaseModel):
 
 class BulkAnswersSubmit(BaseModel):
     answers: List[AnswerItem]
+
+
+class BulkAnswersSubmitResponse(BaseModel):
+    status: str
+    submitted_answers_count: int
+    stale_matches_invalidated: bool = True
 
 
 class ProfileCompletionStatus(BaseModel):
