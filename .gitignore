@@ -42,3 +42,12 @@ htmlcov/
 .vscode/
 .idea/
 *.swp
+
+# Node & Expo
+node_modules/
+mobile/node_modules/
+.expo/
+mobile/.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

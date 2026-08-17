@@ -5,6 +5,9 @@ export type AuthStackParamList = {
 };
 
 export type MainStackParamList = {
+  ProfileSetup: undefined;
+  ObjectiveQuestionnaire: undefined;
+  SubjectiveQuestionnaire: undefined;
   Home: undefined;
   WeeklyMatches: undefined;
   Profile: undefined;
