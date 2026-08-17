@@ -12,6 +12,8 @@ class ProfileCreate(BaseModel):
     caste: Optional[str] = Field(None, json_schema_extra={"example": "Brahmin"})
     caste_preference: Optional[str] = Field("no_preference", json_schema_extra={"example": "no_preference"})
     city: Optional[str] = Field(None, json_schema_extra={"example": "Bengaluru"})
+    invite_code: Optional[str] = Field(None, json_schema_extra={"example": "A9K2M4P7"})
+    invite_token: Optional[str] = Field(None, json_schema_extra={"example": "signed-token"})
 
 
 class ProfileResponse(BaseModel):

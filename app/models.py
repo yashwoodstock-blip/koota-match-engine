@@ -44,6 +44,7 @@ class Profile(Base):
     __tablename__ = "profiles"
 
     id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String(255), unique=True, nullable=True, index=True)
     name = Column(String(255), nullable=False)
     age = Column(Integer, nullable=False)
     gender = Column(String(50), nullable=True)
@@ -51,9 +52,16 @@ class Profile(Base):
     caste = Column(String(100), nullable=True)
     caste_preference = Column(String(100), nullable=True)  # "no_preference", "same_caste_preferred", "same_caste_required"
     city = Column(String(100), nullable=True)
+    invite_code = Column(String(32), nullable=True, index=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     answers = relationship("Answer", back_populates="profile", cascade="all, delete-orphan")
+    weekly_matches = relationship(
+        "WeeklyMatchList",
+        foreign_keys="WeeklyMatchList.profile_id",
+        back_populates="profile",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<Profile id='{self.id}' name='{self.name}'>"
@@ -96,3 +104,38 @@ class MatchResult(Base):
 
     def __repr__(self) -> str:
         return f"<MatchResult a='{self.profile_a_id}' b='{self.profile_b_id}' tier='{self.tier}' score={self.overall_score}>"
+
+
+class InviteCode(Base):
+    __tablename__ = "invite_codes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(32), unique=True, nullable=False, index=True)
+    created_by = Column(String(100), default="admin", nullable=False)
+    used_by = Column(String(255), nullable=True)  # email or profile_id
+    used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<InviteCode code='{self.code}' used_by='{self.used_by}'>"
+
+
+class WeeklyMatchList(Base):
+    __tablename__ = "weekly_match_lists"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    candidate_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    score = Column(Float, nullable=False)
+    tier = Column(String(100), nullable=False)  # "strong match", "compatible with flagged friction points", etc.
+    alignment_points = Column(JSON, default=list, nullable=False)
+    friction_points = Column(JSON, default=list, nullable=False)
+    contradiction_gates = Column(JSON, default=list, nullable=False)
+    generated_at = Column(DateTime, default=utc_now, nullable=False)
+
+    profile = relationship("Profile", foreign_keys=[profile_id], back_populates="weekly_matches")
+    candidate = relationship("Profile", foreign_keys=[candidate_id])
+
+    def __repr__(self) -> str:
+        return f"<WeeklyMatchList profile='{self.profile_id}' candidate='{self.candidate_id}' score={self.score}>"

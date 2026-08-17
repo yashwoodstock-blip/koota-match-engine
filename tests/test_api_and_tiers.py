@@ -95,6 +95,10 @@ def test_api_profile_and_match_lifecycle(monkeypatch):
     monkeypatch.setattr("app.api.routes_profiles.get_embedding", mock_emb)
     monkeypatch.setattr("app.scoring.llm_judge.dispatch_llm_judge", mock_judge)
 
+    from app.auth.invite import create_invite_session_token
+    token_a = create_invite_session_token("INVITE_A")
+    token_b = create_invite_session_token("INVITE_B")
+
     with TestClient(app) as client:
         # 1. Create Profile A
         res_a = client.post("/profiles", json={
@@ -105,6 +109,7 @@ def test_api_profile_and_match_lifecycle(monkeypatch):
             "caste": "Patel",
             "caste_preference": "no_preference",
             "city": "Ahmedabad",
+            "invite_token": token_a,
         })
         assert res_a.status_code == 201
         p_a = res_a.json()
@@ -120,6 +125,7 @@ def test_api_profile_and_match_lifecycle(monkeypatch):
             "caste": "Patel",
             "caste_preference": "no_preference",
             "city": "Mumbai",
+            "invite_token": token_b,
         })
         assert res_b.status_code == 201
         p_b = res_b.json()

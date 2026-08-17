@@ -19,7 +19,35 @@ router = APIRouter(prefix="/profiles", tags=["Profiles"])
 
 @router.post("", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(profile_in: ProfileCreate, db: AsyncSession = Depends(get_db)):
-    """Register a new user profile."""
+    """Register a new user profile. Requires a valid, unused invite code or token."""
+    from app.auth.invite import validate_invite_code, consume_invite_code, verify_invite_token
+
+    code_to_consume = None
+    if profile_in.invite_token:
+        code_to_consume = verify_invite_token(profile_in.invite_token)
+        if not code_to_consume:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invite-only registration: Invalid or expired invite session token.",
+            )
+    elif profile_in.invite_code:
+        is_valid, msg, _ = await validate_invite_code(db, profile_in.invite_code)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Invite-only registration: {msg}",
+            )
+        code_to_consume = profile_in.invite_code
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invite-only registration: A valid redeemed invite code is required to sign up.",
+        )
+
+    # Consume the code
+    if code_to_consume:
+        await consume_invite_code(db, code_to_consume, used_by=profile_in.name)
+
     profile = Profile(
         name=profile_in.name,
         age=profile_in.age,
@@ -28,6 +56,7 @@ async def create_profile(profile_in: ProfileCreate, db: AsyncSession = Depends(g
         caste=profile_in.caste,
         caste_preference=profile_in.caste_preference or "no_preference",
         city=profile_in.city,
+        invite_code=code_to_consume,
     )
     db.add(profile)
     await db.commit()
