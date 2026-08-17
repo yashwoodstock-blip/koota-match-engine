@@ -61,3 +61,61 @@ def test_weekly_matches_nonexistent_profile_404():
         res = client.get("/profiles/non-existent-profile-id/weekly-matches")
         assert res.status_code == 404
         assert "not found" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_weekly_matches_interest_status_staged_disclosure():
+    """Weekly matches endpoint correctly reports caller-specific interest_status and mutual count."""
+    await seed_synthetic_profiles()
+    async with async_session() as db:
+        from app.models import Interest
+        p1 = "syn-01-aarav"
+        p2 = "syn-02-ananya"
+
+        # Ensure weekly matches exist for both
+        await db.execute(delete(WeeklyMatchList).where(WeeklyMatchList.profile_id.in_([p1, p2])))
+        await db.execute(delete(Interest).where(Interest.profile_id.in_([p1, p2])))
+
+        w1 = WeeklyMatchList(
+            profile_id=p1,
+            candidate_id=p2,
+            score=0.92,
+            tier="strong match",
+            alignment_points=["Values"],
+            friction_points=[],
+            contradiction_gates=[],
+        )
+        w2 = WeeklyMatchList(
+            profile_id=p2,
+            candidate_id=p1,
+            score=0.92,
+            tier="strong match",
+            alignment_points=["Values"],
+            friction_points=[],
+            contradiction_gates=[],
+        )
+        # P1 expresses pending interest toward P2
+        int_p1 = Interest(
+            profile_id=p1,
+            target_profile_id=p2,
+            status="pending",
+        )
+        db.add_all([w1, w2, int_p1])
+        await db.commit()
+
+    with TestClient(app) as client:
+        # P1 sees interest_status="pending", is_mutual=False, mutual_matches_count=0
+        r1 = client.get(f"/profiles/{p1}/weekly-matches")
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert d1["mutual_matches_count"] == 0
+        assert d1["matches"][0]["interest_status"] == "pending"
+        assert d1["matches"][0]["is_mutual"] is False
+
+        # P2 sees interest_status="none", is_mutual=False, mutual_matches_count=0 (P1's pending is hidden!)
+        r2 = client.get(f"/profiles/{p2}/weekly-matches")
+        assert r2.status_code == 200
+        d2 = r2.json()
+        assert d2["mutual_matches_count"] == 0
+        assert d2["matches"][0]["interest_status"] == "none"
+        assert d2["matches"][0]["is_mutual"] is False

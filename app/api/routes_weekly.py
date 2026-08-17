@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.models import Profile, WeeklyMatchList
+from app.models import Profile, WeeklyMatchList, Interest
 
 router = APIRouter(prefix="/profiles", tags=["Weekly Matches"])
 
@@ -23,12 +23,15 @@ class WeeklyMatchDTO(BaseModel):
     contradiction_gates: List[Dict[str, Any]] = []
     social_overlap_score: Optional[float] = 0.0
     shared_account_count: Optional[int] = 0
+    interest_status: str = "none"  # "none" | "pending" | "mutual" | "declined"
+    is_mutual: bool = False
     generated_at: datetime
 
 
 class WeeklyMatchListResponse(BaseModel):
     profile_id: str
     total_matches: int
+    mutual_matches_count: int = 0
     matches: List[WeeklyMatchDTO]
     is_precomputed: bool = True
 
@@ -43,6 +46,8 @@ async def get_weekly_matches(
     CRITICAL PERFORMANCE & PRIVACY RULE:
     - Strictly READ-ONLY: Never triggers live scoring, embedding, or LLM judge calls.
     - Zero raw free-text answers or Layer-1 demographic data returned.
+    - Staged-disclosure rule: interest_status exposes caller's perspective only;
+      a target's pending status is hidden until mutual.
     """
     # 1. Verify Profile exists
     stmt_p = select(Profile).where(Profile.id == profile_id)
@@ -61,8 +66,26 @@ async def get_weekly_matches(
     res = await db.execute(stmt)
     rows = res.all()
 
+    # 3. Fetch caller's Interest records for these candidates to populate caller's interest status
+    candidate_ids = [m.candidate_id for m, _ in rows]
+    interests_map: Dict[str, str] = {}
+    if candidate_ids:
+        int_stmt = select(Interest).where(
+            Interest.profile_id == profile_id,
+            Interest.target_profile_id.in_(candidate_ids),
+        )
+        int_res = await db.execute(int_stmt)
+        for i_row in int_res.scalars().all():
+            interests_map[i_row.target_profile_id] = i_row.status
+
     match_dtos: List[WeeklyMatchDTO] = []
+    mutual_count = 0
     for match_record, cand_name in rows:
+        caller_status = interests_map.get(match_record.candidate_id, "none")
+        is_mutual = (caller_status == "mutual")
+        if is_mutual:
+            mutual_count += 1
+
         match_dtos.append(
             WeeklyMatchDTO(
                 candidate_id=match_record.candidate_id,
@@ -74,6 +97,8 @@ async def get_weekly_matches(
                 contradiction_gates=match_record.contradiction_gates or [],
                 social_overlap_score=match_record.social_overlap_score or 0.0,
                 shared_account_count=match_record.shared_account_count or 0,
+                interest_status=caller_status,
+                is_mutual=is_mutual,
                 generated_at=match_record.generated_at,
             )
         )
@@ -81,6 +106,7 @@ async def get_weekly_matches(
     return WeeklyMatchListResponse(
         profile_id=profile_id,
         total_matches=len(match_dtos),
+        mutual_matches_count=mutual_count,
         matches=match_dtos,
         is_precomputed=True,
     )

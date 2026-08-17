@@ -58,6 +58,36 @@ An optional, strictly additive **social overlap bonus signal** based on public a
 
 ---
 
+## 🤝 Phase 8: Mutual-Interest Confirmation & Staged Disclosure
+
+Turns computed weekly matches into actionable matrimonial connections through **atomic mutual interest confirmation** and **strict staged disclosure**:
+
+```
+ ┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
+ │ Profile A expresses    │      │ Profile B views match  │      │ Profile B expresses    │
+ │ Interest (status:      │ ───► │ (status: "none")       │ ───► │ Interest (status:      │
+ │ "pending")             │      │ [A's interest HIDDEN]  │      │ "mutual")              │
+ └────────────────────────┘      └────────────────────────┘      └────────────────────────┘
+                                                                             │
+                                                                             ▼
+                                                                 ┌────────────────────────┐
+                                                                 │ ATOMIC MUTUAL FLIP     │
+                                                                 │ Both rows flip to      │
+                                                                 │ "mutual" in 1 TX       │
+                                                                 └────────────────────────┘
+```
+
+### Atomic Mutual-Flip Transaction Guarantee:
+- **Weekly Match Gating**: A user can only express interest in a candidate currently present in their `WeeklyMatchList`.
+- **Single-Transaction Flip**: When party A has status `"pending"` and party B expresses `"pending"`, **both rows are flipped to `"mutual"` in the exact same database transaction**. It is structurally impossible for one side to show `"mutual"` while the other shows `"pending"`.
+- **Declined Is Terminal**: If a profile sets action `"declined"`, the pair will **never** flip to `"mutual"`, even if the other side later expresses interest.
+
+### Staged-Disclosure Privacy Rule:
+- Under `GET /interest/{profile_id}/status` and `GET /profiles/{id}/weekly-matches`, each caller receives interest statuses **strictly from their own perspective**.
+- A one-sided `"pending"` or `"declined"` expression is **completely invisible** to the other party (returned as `"none"`) until the second party also expresses interest.
+
+---
+
 ## 🌪️ The Weekly Precomputed Match Funnel
 
 Rather than running heavy on-request matching during user browsing, candidate discovery runs on a **Sunday 00:00 UTC batch job** with a monotonic 5-stage funnel:
@@ -124,6 +154,8 @@ To guarantee total matrimonial privacy:
 - **Zero Raw Free-Text Answers** are returned in any API response.
 - **Zero Demographic Data** (income, caste, raw age) is leaked in match payloads.
 - **Zero Raw Usernames or Following Lists** are exposed in match responses.
+- **Zero Contact Info or Photos**: Phone, email, and photos do not exist in data models.
+- **Staged Disclosure of Interest**: One-sided pending interest is never revealed to the other party until mutuality is confirmed.
 - **Sanitized Outputs Only**: Responses deliver precomputed numeric scores, compatibility tiers, alignment insights, friction alerts, contradiction gate notes, and non-gating aggregate overlap statistics.
 
 ---
@@ -141,6 +173,7 @@ koota-match-engine/
 │   ├── api/
 │   │   ├── routes_auth.py         # /auth/invite/generate, /auth/invite/redeem, /auth/google/callback
 │   │   ├── routes_following.py    # POST/DELETE /profiles/{id}/following (opt-in overlap signal)
+│   │   ├── routes_interest.py     # POST /interest, GET /interest/{id}/status (Phase 8 mutual interest)
 │   │   ├── routes_match.py        # POST /match/{id_a}/{id_b} and GET /match/{id}/candidates
 │   │   ├── routes_profiles.py     # Profile CRUD (invite-gated) and answer submissions
 │   │   ├── routes_weekly.py       # GET /profiles/{id}/weekly-matches (strictly read-only)
@@ -153,6 +186,8 @@ koota-match-engine/
 │   │   ├── seed_kootas.py         # Database seeder to initialize and verify all 42 Kootas
 │   │   ├── seed_synthetic.py      # Seeder for 16 realistic edge-case synthetic profiles
 │   │   └── session.py             # SQLAlchemy 2.0 async session and engine factory
+│   ├── interest/
+│   │   └── interest_service.py    # Atomic mutual-interest confirmation & staged disclosure logic
 │   ├── matching/
 │   │   ├── batch_runner.py        # Scheduled sequential batch runner with 30 RPM rate limiting
 │   │   ├── candidates_batch.py    # 5-stage precomputed funnel (SQL -> ANN -> NLI -> LLM -> Top 5)
@@ -165,7 +200,7 @@ koota-match-engine/
 │   │   ├── semantic.py            # Sentence similarity, embedding cache, and vector cosine math
 │   │   └── tiers.py               # 3-tier classifier and 42 curated domain insight templates
 │   ├── main.py                    # FastAPI app initialization, lifespan hooks, CORS, and healthcheck
-│   └── models.py                  # SQLAlchemy ORM models (Profile, Answer, Koota, InviteCode, FollowingList, WeeklyMatchList)
+│   └── models.py                  # SQLAlchemy ORM models (Profile, Answer, Koota, InviteCode, FollowingList, WeeklyMatchList, Interest)
 ├── tests/
 │   ├── synthetic_profiles.json    # 16 synthetic profiles with diverse edge-case traits
 │   ├── test_aggregation.py        # Tests for score weighting and divergence detection
@@ -174,6 +209,8 @@ koota-match-engine/
 │   ├── test_candidates_batch.py   # Tests for monotonic funnel narrowing, NLI drops, and 30 RPM limit
 │   ├── test_following_api.py      # Tests for Following upload, replacement, deletion, and privacy assertions
 │   ├── test_gated_aggregation.py  # Tests for Koota 41 veto and Top-10 contradiction ceilings
+│   ├── test_interest_api.py       # E2E API tests for interest expression, mutual confirmation, and privacy
+│   ├── test_interest_service.py   # Unit tests for atomic flips, decline terminal state, and weekly match gate
 │   ├── test_llm_judge.py          # Unit tests for multi-provider LLM Judge and fallbacks
 │   ├── test_nli_scorer.py         # Tests for NLI entailment and contradiction formulas
 │   ├── test_objective_scorer.py   # Tests for age gap, religion match, and partial credit matrices
@@ -181,7 +218,7 @@ koota-match-engine/
 │   ├── test_semantic_scorer.py    # Tests for vector caching and cosine similarity math
 │   ├── test_social_overlap.py     # Tests for Jaccard calculation, ratios, opt-out short-circuits
 │   ├── test_synthetic_matching.py # Edge-case assertions on 16 synthetic candidate pairs
-│   └── test_weekly_matches_api.py # Tests for constant-time, read-only weekly matches API
+│   └── test_weekly_matches_api.py # Tests for constant-time weekly matches API & interest status reporting
 ├── .env.example                   # Annotated template for all required API keys
 ├── requirements.txt               # Pinned production Python dependencies
 └── README.md                      # Complete system documentation
@@ -191,45 +228,52 @@ koota-match-engine/
 
 ## 🔌 API Reference
 
-### 1. Upload Opt-In Following List
+### 1. Express / Decline Interest
 ```http
-POST /profiles/{profile_id}/following
+POST /interest
 Content-Type: application/json
 
 {
-  "usernames": ["natgeo", "virat.kohli", "hubermanlab"]
+  "profile_id": "syn-01-aarav",
+  "target_profile_id": "syn-02-ananya",
+  "action": "pending"
 }
 ```
 **Response (200 OK):**
 ```json
 {
-  "status": "success",
-  "profile_id": "3ea2571d-a589-4966-92c5-272f10814a8f",
-  "account_count": 3,
-  "opted_in": true,
-  "uploaded_at": "2026-08-18T02:00:00.000000Z"
+  "profile_id": "syn-01-aarav",
+  "target_profile_id": "syn-02-ananya",
+  "status": "pending",
+  "is_mutual": false,
+  "expressed_at": "2026-08-18T02:30:00.000000Z"
 }
 ```
 
 ---
 
-### 2. Delete / Opt-Out Following List
+### 2. Check Candidate Interest Statuses (Staged Disclosure)
 ```http
-DELETE /profiles/{profile_id}/following
+GET /interest/{profile_id}/status
 ```
-**Response (200 OK — Idempotent):**
+**Response (200 OK):**
 ```json
 {
-  "status": "success",
-  "profile_id": "3ea2571d-a589-4966-92c5-272f10814a8f",
-  "opted_in": false,
-  "message": "Following list removed and opted out of social overlap signal."
+  "profile_id": "syn-01-aarav",
+  "statuses": [
+    {
+      "candidate_id": "syn-02-ananya",
+      "status": "pending",
+      "is_mutual": false,
+      "expressed_at": "2026-08-18T02:30:00.000000Z"
+    }
+  ]
 }
 ```
 
 ---
 
-### 3. Read-Only Weekly Matches
+### 3. Read-Only Weekly Matches (with Mutual Match Count)
 ```http
 GET /profiles/{profile_id}/weekly-matches
 ```
@@ -238,6 +282,7 @@ GET /profiles/{profile_id}/weekly-matches
 {
   "profile_id": "syn-01-aarav",
   "total_matches": 5,
+  "mutual_matches_count": 1,
   "is_precomputed": true,
   "matches": [
     {
@@ -253,6 +298,8 @@ GET /profiles/{profile_id}/weekly-matches
       "contradiction_gates": [],
       "social_overlap_score": 0.4286,
       "shared_account_count": 6,
+      "interest_status": "mutual",
+      "is_mutual": true,
       "generated_at": "2026-08-18T00:00:00Z"
     }
   ]
@@ -261,9 +308,9 @@ GET /profiles/{profile_id}/weekly-matches
 
 ---
 
-## 🧪 Automated Test Suite (60 Tests)
+## 🧪 Automated Test Suite (70 Tests)
 
-The engine features a comprehensive, 100% passing test suite across 15 test modules:
+The engine features a comprehensive, 100% passing test suite across 17 test modules:
 
 ```text
 tests/test_phase1_scaffolding.py                 [3/3 passed]
@@ -274,13 +321,15 @@ tests/test_llm_judge.py                          [4/4 passed]
 tests/test_gated_aggregation.py                  [2/2 passed]
 tests/test_social_overlap.py                     [6/6 passed]
 tests/test_following_api.py                      [4/4 passed]
+tests/test_interest_service.py                   [7/7 passed]
+tests/test_interest_api.py                       [2/2 passed]
 tests/test_api_and_tiers.py                      [5/5 passed]
 tests/test_aggregation.py                        [3/3 passed]
 tests/test_synthetic_matching.py                 [6/6 passed]
 tests/test_auth.py                               [5/5 passed]
 tests/test_candidates_batch.py                   [3/3 passed]
-tests/test_weekly_matches_api.py                 [2/2 passed]
-======================== 60 passed in 5.70s ========================
+tests/test_weekly_matches_api.py                 [3/3 passed]
+======================== 70 passed in 12.53s ========================
 ```
 
 ---

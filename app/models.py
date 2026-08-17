@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     JSON,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -165,3 +166,20 @@ class WeeklyMatchList(Base):
 
     def __repr__(self) -> str:
         return f"<WeeklyMatchList profile='{self.profile_id}' candidate='{self.candidate_id}' score={self.score}>"
+
+
+class Interest(Base):
+    __tablename__ = "interests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    expressed_at = Column(DateTime, default=utc_now, nullable=False)
+    status = Column(String(20), default="pending", nullable=False)  # "pending" | "mutual" | "declined"
+
+    __table_args__ = (
+        UniqueConstraint("profile_id", "target_profile_id", name="uq_interest_pair"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Interest from='{self.profile_id}' to='{self.target_profile_id}' status='{self.status}'>"
