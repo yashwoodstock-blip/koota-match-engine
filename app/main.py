@@ -15,8 +15,11 @@ from app.api.routes_interest import router as interest_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB and ensure Kootas are seeded on startup
-    await init_db()
-    await seed_kootas()
+    try:
+        await init_db()
+        await seed_kootas()
+    except Exception as e:
+        print(f"Startup DB init warning: {e}")
     yield
 
 
