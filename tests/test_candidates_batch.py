@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.db.session import async_session
 from app.models import Profile, Answer, WeeklyMatchList
 from app.api.routes_match import load_kootas_metadata
+from app.db.seed_synthetic import seed_synthetic_profiles
 from app.matching.candidates_batch import (
     run_candidates_funnel_for_profile,
     get_sql_hard_filtered_candidates,
@@ -22,6 +23,7 @@ async def test_funnel_monotonic_narrowing_and_llm_limit(monkeypatch):
     """Assert that the funnel narrows monotonically (Pool -> 50 -> 10 -> 5)
     and that the LLM judge is NEVER invoked on more than 10 candidates.
     """
+    await seed_synthetic_profiles()
     llm_call_count = 0
 
     async def mock_judge(answers_a, answers_b, metadata, *args, **kwargs):

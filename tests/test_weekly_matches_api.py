@@ -5,12 +5,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete
 from app.main import app
 from app.db.session import async_session
+from app.db.seed_synthetic import seed_synthetic_profiles
 from app.models import Profile, WeeklyMatchList, utc_now
 
 
 @pytest.mark.asyncio
 async def test_weekly_matches_read_only_instant_response():
     """GET /profiles/{id}/weekly-matches reads precomputed rows with zero live scoring calls."""
+    await seed_synthetic_profiles()
     async with async_session() as db:
         # 1. Clean previous and insert precomputed WeeklyMatchList entries
         target_id = "syn-01-aarav"
