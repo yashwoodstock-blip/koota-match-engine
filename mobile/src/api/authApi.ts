@@ -43,10 +43,32 @@ export interface ProfileResponse {
   caste: string;
   caste_preference: string;
   city: string;
-  is_active: boolean;
+  is_active?: boolean;
   answered_kootas_count?: number;
   total_kootas_count?: number;
   is_complete?: boolean;
+  created_at?: string;
+}
+
+export interface ProfileUpdateResponse {
+  id: string;
+  name: string;
+  age: number;
+  gender?: string;
+  religion: string;
+  caste?: string;
+  caste_preference?: string;
+  city?: string;
+  stale_matches_invalidated: boolean;
+  hard_filter_changed: boolean;
+  warning?: string;
+  updated_at: string;
+}
+
+export interface ProfileDeleteResponse {
+  status: string;
+  message: string;
+  deleted_profile_id: string;
 }
 
 export interface AnswerItem {
@@ -156,6 +178,34 @@ export async function createProfile(
 }
 
 /**
+ * Partially update Layer 1 Demographics Profile.
+ */
+export async function updateProfile(
+  token: string,
+  profileId: string,
+  payload: Partial<ProfileCreatePayload>
+): Promise<ProfileUpdateResponse> {
+  return await apiClient<ProfileUpdateResponse>(`/profiles/${profileId}`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Permanently delete Profile and all associated artifacts (DPDP).
+ */
+export async function deleteProfile(
+  token: string,
+  profileId: string
+): Promise<ProfileDeleteResponse> {
+  return await apiClient<ProfileDeleteResponse>(`/profiles/${profileId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+/**
  * Retrieve Profile summary and completion status.
  */
 export async function getProfileDetails(
@@ -169,18 +219,21 @@ export async function getProfileDetails(
 }
 
 /**
- * Submit bulk answers for 42-Koota questionnaire.
+ * Submit bulk answers for 42-Koota questionnaire (explicit UPSERT).
  */
 export async function submitAnswers(
   token: string,
   profileId: string,
   answers: AnswerItem[]
-): Promise<{ status: string; count: number }> {
-  return await apiClient<{ status: string; count: number }>(`/profiles/${profileId}/answers`, {
-    method: 'POST',
-    token,
-    body: JSON.stringify({ answers }),
-  });
+): Promise<{ status: string; count: number; stale_matches_invalidated?: boolean }> {
+  return await apiClient<{ status: string; count: number; stale_matches_invalidated?: boolean }>(
+    `/profiles/${profileId}/answers`,
+    {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ answers }),
+    }
+  );
 }
 
 /**

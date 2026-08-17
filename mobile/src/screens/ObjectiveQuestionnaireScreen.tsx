@@ -9,7 +9,7 @@ import {
   Animated,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
@@ -23,6 +23,7 @@ import { SelectableCard } from '../components/SelectableCard';
 import { MainStackParamList } from '../navigation/types';
 
 type NavProp = NativeStackNavigationProp<MainStackParamList, 'ObjectiveQuestionnaire'>;
+type ScreenRouteProp = RouteProp<MainStackParamList, 'ObjectiveQuestionnaire'>;
 
 interface FlatObjectiveQuestion {
   koota: KootaDefinition;
@@ -52,6 +53,14 @@ KOOTAS_DATA.forEach((koota) => {
 
 export const ObjectiveQuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
+  let isEditMode = false;
+  try {
+    const route = useRoute<ScreenRouteProp>();
+    isEditMode = !!route?.params?.isEditMode;
+  } catch {
+    isEditMode = false;
+  }
+
   const { session, profile } = useAuth();
   const { setAnswer, getAnswer, submitAllAnswers, isSubmitting, error } = useQuestionnaire();
 
@@ -112,7 +121,11 @@ export const ObjectiveQuestionnaireScreen: React.FC = () => {
       if (profile?.id && session?.access_token) {
         await submitAllAnswers(profile.id, session.access_token);
       }
-      navigation.navigate('SubjectiveQuestionnaire');
+      if (isEditMode) {
+        navigation.navigate('EditProfile');
+      } else {
+        navigation.navigate('SubjectiveQuestionnaire');
+      }
     }
   };
 
@@ -124,95 +137,125 @@ export const ObjectiveQuestionnaireScreen: React.FC = () => {
     }
   };
 
+  const handleSaveAndExit = async () => {
+    if (profile?.id && session?.access_token) {
+      await submitAllAnswers(profile.id, session.access_token);
+    }
+    navigation.navigate('EditProfile');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Header Bar */}
       <View style={styles.headerBar}>
         <TouchableOpacity
-          onPress={handlePrev}
-          disabled={currentIndex === 0}
-          style={[styles.navBtn, currentIndex === 0 ? styles.navBtnDisabled : null]}
+          onPress={isEditMode && currentIndex === 0 ? handleSaveAndExit : handlePrev}
+          disabled={!isEditMode && currentIndex === 0}
+          style={[styles.navBtn, !isEditMode && currentIndex === 0 ? styles.navBtnDisabled : null]}
         >
-          <Text style={[styles.navBtnText, currentIndex === 0 ? styles.navBtnTextDisabled : null]}>
-            ← Previous
+          <Text
+            style={[
+              styles.navBtnText,
+              !isEditMode && currentIndex === 0 ? styles.navBtnTextDisabled : null,
+            ]}
+          >
+            {isEditMode && currentIndex === 0 ? '← Settings' : '← Previous'}
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.categoryBadge}>STAGE 1 • OBJECTIVE PASS</Text>
+        <Text style={styles.categoryBadge}>
+          {isEditMode ? 'EDITING • OBJECTIVE PASS' : 'STAGE 1 • OBJECTIVE PASS'}
+        </Text>
 
-        <View style={{ width: 60 }} />
+        {isEditMode && (
+          <TouchableOpacity onPress={handleSaveAndExit} style={styles.finishBtn}>
+            <Text style={styles.finishBtnText}>Done</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <View style={styles.content}>
-        <QuestionnaireProgress
-          current={currentIndex + 1}
-          total={ALL_OBJECTIVE_QUESTIONS.length}
-          pillarTitle={currentItem.koota.pillar}
-        />
+      {/* Edit Mode Notice */}
+      {isEditMode && (
+        <View style={styles.editModeNotice}>
+          <Text style={styles.editModeNoticeText}>
+            Updating answers will invalidate active matches and trigger fresh calculations.
+          </Text>
+        </View>
+      )}
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
-          <Animated.View
-            style={{
+      {/* Progress */}
+      <QuestionnaireProgress
+        current={currentIndex + 1}
+        total={ALL_OBJECTIVE_QUESTIONS.length}
+        pillarTitle={`${currentItem.koota.pillar} • ${currentItem.koota.name}`}
+      />
+
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>⚠ {error}</Text>
+        </View>
+      )}
+
+      {/* Question Body */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          style={[
+            styles.questionCard,
+            {
               opacity: fadeAnim,
               transform: [{ translateX: slideAnim }],
-            }}
-          >
-            {/* Koota Card */}
-            <View style={styles.kootaMeta}>
-              <Text style={styles.kootaName}>
-                {currentItem.koota.koota_id}. {currentItem.koota.name}
-              </Text>
-              {currentItem.koota.is_hard_filter && (
-                <View style={styles.hardFilterBadge}>
-                  <Text style={styles.hardFilterText}>CRITICAL GATEKEEPER</Text>
-                </View>
-              )}
-            </View>
+            },
+          ]}
+        >
+          <Text style={styles.kootaPillar}>{currentItem.koota.pillar.toUpperCase()}</Text>
+          <Text style={styles.kootaTitle}>
+            {currentItem.koota.koota_id}. {currentItem.koota.name}
+          </Text>
+          <Text style={styles.questionPrompt}>{currentItem.questionText}</Text>
 
-            <Text style={styles.questionText}>{currentItem.questionText}</Text>
+          {/* Options */}
+          <View style={styles.optionsList}>
+            {currentItem.options.map((option) => (
+              <SelectableCard
+                key={option.value}
+                label={option.label}
+                selected={selectedValue === option.value}
+                onSelect={() => handleSelectOption(option.value)}
+              />
+            ))}
+          </View>
+        </Animated.View>
+      </ScrollView>
 
-            {/* Selectable Options */}
-            <View style={styles.optionsList}>
-              {currentItem.options.map((opt, idx) => (
-                <SelectableCard
-                  key={opt.value}
-                  label={opt.label}
-                  selected={selectedValue === opt.value}
-                  onSelect={() => handleSelectOption(opt.value)}
-                  index={idx}
-                />
-              ))}
-            </View>
-          </Animated.View>
-        </ScrollView>
-
-        {/* Footer Navigation */}
-        <View style={styles.footer}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>⚠ {error}</Text>
-            </View>
+      {/* Footer Navigation */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.nextButton, !selectedValue && styles.nextButtonDisabled]}
+          onPress={handleNext}
+          disabled={!selectedValue || isSubmitting}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={
+            currentIndex === ALL_OBJECTIVE_QUESTIONS.length - 1
+              ? 'Save and Continue'
+              : 'Next Question'
+          }
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color={Colors.textInverse} />
+          ) : (
+            <Text style={styles.nextButtonText}>
+              {currentIndex === ALL_OBJECTIVE_QUESTIONS.length - 1
+                ? isEditMode
+                  ? 'Save & Return to Settings →'
+                  : 'Save & Proceed to Reflective Stage →'
+                : 'Next Question →'}
+            </Text>
           )}
-
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              !selectedValue || isSubmitting ? styles.nextButtonDisabled : null,
-            ]}
-            onPress={handleNext}
-            disabled={!selectedValue || isSubmitting}
-            activeOpacity={0.85}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color={Colors.textInverse} />
-            ) : (
-              <Text style={styles.nextButtonText}>
-                {currentIndex === ALL_OBJECTIVE_QUESTIONS.length - 1
-                  ? 'Complete Objective Pass →'
-                  : 'Save & Continue →'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -225,94 +268,121 @@ const styles = StyleSheet.create({
   },
   headerBar: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
   navBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
   navBtnDisabled: {
-    opacity: 0.3,
+    opacity: 0.2,
   },
   navBtnText: {
-    ...Typography.bodySecondary,
-    fontWeight: '600',
+    ...Typography.caption,
     color: Colors.textSecondary,
+    fontWeight: '700',
   },
   navBtnTextDisabled: {
     color: Colors.textMuted,
   },
   categoryBadge: {
     ...Typography.caption,
+    fontSize: 10,
+    letterSpacing: 1.5,
     color: Colors.accentDark,
-    letterSpacing: 1,
+    fontWeight: '800',
+  },
+  finishBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  finishBtnText: {
+    ...Typography.caption,
     fontWeight: '700',
+    color: Colors.primary,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
+  editModeNotice: {
+    backgroundColor: '#FFF9E6',
+    paddingVertical: 6,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE08A',
   },
-  scrollBody: {
-    paddingVertical: 16,
+  editModeNoticeText: {
+    ...Typography.caption,
+    fontSize: 11,
+    color: Colors.accentDark,
+    textAlign: 'center',
   },
-  kootaMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
-  kootaName: {
+  questionCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 24,
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  kootaPillar: {
+    ...Typography.caption,
+    color: Colors.accentDark,
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  kootaTitle: {
     ...Typography.headline,
-    fontSize: 20,
+    fontSize: 22,
     lineHeight: 28,
     fontFamily: 'serif',
     color: Colors.primary,
-    flex: 1,
+    marginBottom: 14,
   },
-  hardFilterBadge: {
-    backgroundColor: Colors.errorBackground,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.errorBorder,
-  },
-  hardFilterText: {
-    ...Typography.caption,
-    fontSize: 10,
-    color: Colors.error,
-    fontWeight: '700',
-  },
-  questionText: {
+  questionPrompt: {
     ...Typography.body,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.text,
     marginBottom: 20,
-    fontStyle: 'italic',
   },
   optionsList: {
-    marginTop: 8,
+    gap: 4,
   },
-  footer: {
-    paddingVertical: 16,
-  },
-  errorContainer: {
+  errorBox: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    padding: 10,
     backgroundColor: Colors.errorBackground,
-    padding: 8,
     borderRadius: 8,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.errorBorder,
   },
   errorText: {
     ...Typography.caption,
     color: Colors.error,
     textAlign: 'center',
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
   },
   nextButton: {
     backgroundColor: Colors.primary,
@@ -326,11 +396,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   nextButtonDisabled: {
-    backgroundColor: Colors.textMuted,
+    opacity: 0.4,
     shadowOpacity: 0,
     elevation: 0,
   },
   nextButtonText: {
     ...Typography.button,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,14 +27,31 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('WeeklyMatches');
   };
 
+  const handleOpenSettings = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('EditProfile');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header Bar */}
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>KOOTA MATCH • 42-DIMENSION ENGINE</Text>
-          <Text style={styles.greeting}>Namaste, {profile?.name || 'Member'}</Text>
-          <Text style={styles.email}>{profile?.email}</Text>
+          <View>
+            <Text style={styles.eyebrow}>KOOTA MATCH • 42-DIMENSION ENGINE</Text>
+            <Text style={styles.greeting}>Namaste, {profile?.name || 'Member'}</Text>
+            <Text style={styles.email}>{profile?.email}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.settingsIconBtn}
+            onPress={handleOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Weekly Matches Banner Card */}
@@ -55,6 +73,25 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Profile Settings Quick Card */}
+        <View style={styles.settingsCard}>
+          <Text style={styles.cardEyebrow}>PROFILE & PREFERENCES</Text>
+          <Text style={styles.cardTitle}>42-Dimension Controls</Text>
+          <Text style={styles.cardBody}>
+            Review Layer 1 demographics, update objective choices, or refine reflective responses.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={handleOpenSettings}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Edit Profile & Answers"
+          >
+            <Text style={styles.settingsBtnText}>Edit Profile & 42 Answers ⚙️</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={logout}
@@ -64,7 +101,7 @@ export const HomeScreen: React.FC = () => {
         >
           <Text style={styles.logoutButtonText}>Sign Out</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -74,14 +111,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
-    justifyContent: 'space-between',
+    paddingVertical: 20,
+    gap: 18,
   },
   header: {
-    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 10,
   },
   eyebrow: {
     ...Typography.caption,
@@ -100,7 +139,32 @@ const styles = StyleSheet.create({
     ...Typography.bodySecondary,
     marginTop: 4,
   },
+  settingsIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: {
+    fontSize: 20,
+  },
   statusCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  settingsCard: {
     backgroundColor: Colors.surface,
     borderWidth: 1.5,
     borderColor: Colors.border,
@@ -129,7 +193,7 @@ const styles = StyleSheet.create({
   cardBody: {
     ...Typography.bodySecondary,
     lineHeight: 21,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   viewMatchesBtn: {
     backgroundColor: Colors.primary,
@@ -146,6 +210,19 @@ const styles = StyleSheet.create({
     ...Typography.button,
     fontSize: 15,
   },
+  settingsBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  settingsBtnText: {
+    ...Typography.button,
+    color: Colors.text,
+    fontSize: 14,
+  },
   logoutButton: {
     backgroundColor: Colors.backgroundSecondary,
     borderWidth: 1,
@@ -154,7 +231,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+    marginTop: 8,
   },
   logoutButtonText: {
     ...Typography.button,

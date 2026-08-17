@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
@@ -24,6 +24,7 @@ import { QuestionnaireProgress } from '../components/QuestionnaireProgress';
 import { MainStackParamList } from '../navigation/types';
 
 type NavProp = NativeStackNavigationProp<MainStackParamList, 'SubjectiveQuestionnaire'>;
+type ScreenRouteProp = RouteProp<MainStackParamList, 'SubjectiveQuestionnaire'>;
 
 interface FlatSubjectiveQuestion {
   koota: KootaDefinition;
@@ -51,6 +52,14 @@ KOOTAS_DATA.forEach((koota) => {
 
 export const SubjectiveQuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
+  let isEditMode = false;
+  try {
+    const route = useRoute<ScreenRouteProp>();
+    isEditMode = !!route?.params?.isEditMode;
+  } catch {
+    isEditMode = false;
+  }
+
   const { session, profile } = useAuth();
   const { setAnswer, getAnswer, submitAllAnswers, refreshCompletion, isSubmitting, error } =
     useQuestionnaire();
@@ -60,7 +69,8 @@ export const SubjectiveQuestionnaireScreen: React.FC = () => {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const currentItem = ALL_SUBJECTIVE_QUESTIONS[currentIndex];
-  const textValue = getAnswer(currentItem.koota.koota_id, currentItem.qIndex, 'subjective');
+  const textValue =
+    getAnswer(currentItem.koota.koota_id, currentItem.qIndex, 'subjective') || '';
 
   const animateTransition = (direction: 'next' | 'prev', callback: () => void) => {
     const slideOffset = direction === 'next' ? -30 : 30;
@@ -95,8 +105,8 @@ export const SubjectiveQuestionnaireScreen: React.FC = () => {
     });
   };
 
-  const handleTextChange = (text: string) => {
-    setAnswer(currentItem.koota.koota_id, currentItem.qIndex, 'subjective', text);
+  const handleChangeText = (val: string) => {
+    setAnswer(currentItem.koota.koota_id, currentItem.qIndex, 'subjective', val);
   };
 
   const handleNext = async () => {
@@ -120,7 +130,11 @@ export const SubjectiveQuestionnaireScreen: React.FC = () => {
         await submitAllAnswers(profile.id, session.access_token);
         await refreshCompletion(profile.id, session.access_token);
       }
-      navigation.navigate('Home');
+      if (isEditMode) {
+        navigation.navigate('EditProfile');
+      } else {
+        navigation.navigate('Home');
+      }
     }
   };
 
@@ -132,6 +146,14 @@ export const SubjectiveQuestionnaireScreen: React.FC = () => {
     }
   };
 
+  const handleSaveAndExit = async () => {
+    if (profile?.id && session?.access_token) {
+      await submitAllAnswers(profile.id, session.access_token);
+      await refreshCompletion(profile.id, session.access_token);
+    }
+    navigation.navigate('EditProfile');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -140,115 +162,130 @@ export const SubjectiveQuestionnaireScreen: React.FC = () => {
       >
         <View style={styles.headerBar}>
           <TouchableOpacity
-            onPress={handlePrev}
-            disabled={currentIndex === 0}
-            style={[styles.navBtn, currentIndex === 0 ? styles.navBtnDisabled : null]}
+            onPress={isEditMode && currentIndex === 0 ? handleSaveAndExit : handlePrev}
+            disabled={!isEditMode && currentIndex === 0}
+            style={[styles.navBtn, !isEditMode && currentIndex === 0 ? styles.navBtnDisabled : null]}
           >
             <Text
               style={[
                 styles.navBtnText,
-                currentIndex === 0 ? styles.navBtnTextDisabled : null,
+                !isEditMode && currentIndex === 0 ? styles.navBtnTextDisabled : null,
               ]}
             >
-              ← Previous
+              {isEditMode && currentIndex === 0 ? '← Settings' : '← Previous'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.batchBadge}>
-            <Text style={styles.batchText}>BATCH {currentItem.batchNumber} • REFLECTIONS</Text>
+            <Text style={styles.batchText}>
+              {isEditMode ? 'EDITING RESPONSES' : `BATCH ${currentItem.batchNumber} • REFLECTIONS`}
+            </Text>
           </View>
 
-          <View style={{ width: 60 }} />
+          {isEditMode && (
+            <TouchableOpacity onPress={handleSaveAndExit} style={styles.finishBtn}>
+              <Text style={styles.finishBtnText}>Done</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <View style={styles.content}>
-          <QuestionnaireProgress
-            current={currentIndex + 1}
-            total={ALL_SUBJECTIVE_QUESTIONS.length}
-            pillarTitle={currentItem.koota.pillar}
-          />
+        {/* Edit Mode Notice */}
+        {isEditMode && (
+          <View style={styles.editModeNotice}>
+            <Text style={styles.editModeNoticeText}>
+              Updating answers will invalidate active matches and trigger fresh calculations.
+            </Text>
+          </View>
+        )}
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
-            <Animated.View
-              style={{
+        {/* Progress */}
+        <QuestionnaireProgress
+          current={currentIndex + 1}
+          total={ALL_SUBJECTIVE_QUESTIONS.length}
+          pillarTitle={`${currentItem.koota.pillar} • ${currentItem.koota.name}`}
+        />
+
+        {/* Question & Reflection input */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View
+            style={[
+              styles.card,
+              {
                 opacity: fadeAnim,
                 transform: [{ translateX: slideAnim }],
-              }}
-            >
-              {/* Koota Metadata */}
-              <View style={styles.kootaMeta}>
-                <Text style={styles.kootaName}>
-                  {currentItem.koota.koota_id}. {currentItem.koota.name}
-                </Text>
-                {currentItem.koota.koota_id === 41 && (
-                  <View style={styles.vetoBadge}>
-                    <Text style={styles.vetoText}>FOUNDATIONAL EXISTENTIAL VETO</Text>
-                  </View>
-                )}
-              </View>
+              },
+            ]}
+          >
+            <Text style={styles.pillarEyebrow}>{currentItem.koota.pillar.toUpperCase()}</Text>
+            <Text style={styles.kootaTitle}>
+              {currentItem.koota.koota_id}. {currentItem.koota.name}
+            </Text>
+            <Text style={styles.questionPrompt}>{currentItem.questionText}</Text>
 
-              <Text style={styles.questionText}>"{currentItem.questionText}"</Text>
-
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  multiline
-                  numberOfLines={6}
-                  value={textValue}
-                  onChangeText={handleTextChange}
-                  placeholder="Share your authentic perspective. Thoughtful reflections create mathematically superior matches..."
-                  placeholderTextColor={Colors.textMuted}
-                  textAlignVertical="top"
-                />
-                <View style={styles.charCountContainer}>
-                  <Text
-                    style={[
-                      styles.charCount,
-                      textValue.length >= 40 ? styles.charCountGood : null,
-                    ]}
-                  >
-                    {textValue.length} characters (min 40 recommended)
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.editorialNote}>
-                <Text style={styles.noteIcon}>✦</Text>
-                <Text style={styles.noteText}>
-                  Zero-Knowledge Privacy: Raw text responses are never displayed to matches. They are analyzed exclusively by our NLI model and Groq Llama-3.3-70B judge for semantic alignment.
+            {/* Reflection Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                value={textValue}
+                onChangeText={handleChangeText}
+                placeholder="Share your authentic perspective... (at least 2–3 sentences recommended)"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
+                accessibilityLabel="Reflective Answer Input"
+              />
+              <View style={styles.inputMeta}>
+                <Text style={styles.charCount}>
+                  {textValue.length} characters
+                  {textValue.length < 40 ? ' (aim for 40+ for deeper embeddings)' : ' ✓'}
                 </Text>
               </View>
-            </Animated.View>
-          </ScrollView>
+            </View>
 
-          {/* Footer Action */}
-          <View style={styles.footer}>
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>⚠ {error}</Text>
+            {/* Existential Veto Notice for Koota 41 */}
+            {currentItem.koota.koota_id === 41 && (
+              <View style={styles.vetoCallout}>
+                <Text style={styles.vetoIcon}>✦</Text>
+                <Text style={styles.vetoText}>
+                  FOUNDATIONAL PILLAR: Koota 41 reflects your existential vision of marriage.
+                  Honesty here prevents long-term misalignment.
+                </Text>
               </View>
             )}
+          </Animated.View>
+        </ScrollView>
 
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-                !textValue.trim() || isSubmitting ? styles.nextButtonDisabled : null,
-              ]}
-              onPress={handleNext}
-              disabled={!textValue.trim() || isSubmitting}
-              activeOpacity={0.85}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color={Colors.textInverse} />
-              ) : (
-                <Text style={styles.nextButtonText}>
-                  {currentIndex === ALL_SUBJECTIVE_QUESTIONS.length - 1
-                    ? 'Finalize All 42 Kootas ✓'
-                    : 'Save Reflection & Next →'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+        {/* Footer Navigation */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.nextButton, !textValue.trim() && styles.nextButtonDisabled]}
+            onPress={handleNext}
+            disabled={!textValue.trim() || isSubmitting}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={
+              currentIndex === ALL_SUBJECTIVE_QUESTIONS.length - 1
+                ? 'Save and Complete'
+                : 'Next Reflection'
+            }
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={Colors.textInverse} />
+            ) : (
+              <Text style={styles.nextButtonText}>
+                {currentIndex === ALL_SUBJECTIVE_QUESTIONS.length - 1
+                  ? isEditMode
+                    ? 'Save & Return to Settings →'
+                    : 'Save & Complete Questionnaire ✨'
+                  : 'Save Reflection & Next →'}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -262,24 +299,23 @@ const styles = StyleSheet.create({
   },
   headerBar: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
   navBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
   navBtnDisabled: {
-    opacity: 0.3,
+    opacity: 0.2,
   },
   navBtnText: {
-    ...Typography.bodySecondary,
-    fontWeight: '600',
+    ...Typography.caption,
     color: Colors.textSecondary,
+    fontWeight: '700',
   },
   navBtnTextDisabled: {
     color: Colors.textMuted,
@@ -288,71 +324,87 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   batchText: {
     ...Typography.caption,
-    fontSize: 11,
+    fontSize: 10,
+    letterSpacing: 1,
     color: Colors.accentDark,
+    fontWeight: '800',
+  },
+  finishBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  finishBtnText: {
+    ...Typography.caption,
     fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-  },
-  scrollBody: {
-    paddingVertical: 16,
-  },
-  kootaMeta: {
-    marginBottom: 10,
-  },
-  kootaName: {
-    ...Typography.headline,
-    fontSize: 22,
-    lineHeight: 30,
-    fontFamily: 'serif',
     color: Colors.primary,
   },
-  vetoBadge: {
-    backgroundColor: Colors.errorBackground,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.errorBorder,
-    alignSelf: 'flex-start',
-    marginTop: 6,
+  editModeNotice: {
+    backgroundColor: '#FFF9E6',
+    paddingVertical: 6,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE08A',
   },
-  vetoText: {
+  editModeNoticeText: {
     ...Typography.caption,
-    fontSize: 10,
-    color: Colors.error,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    color: Colors.accentDark,
+    textAlign: 'center',
   },
-  questionText: {
-    ...Typography.body,
-    fontSize: 17,
-    lineHeight: 26,
-    color: Colors.text,
-    marginVertical: 16,
-    fontStyle: 'italic',
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
-  inputContainer: {
+  card: {
     backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 24,
+    marginTop: 8,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 14,
-    padding: 16,
     shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 10,
     elevation: 2,
+  },
+  pillarEyebrow: {
+    ...Typography.caption,
+    color: Colors.accentDark,
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  kootaTitle: {
+    ...Typography.headline,
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: 'serif',
+    color: Colors.primary,
+    marginBottom: 14,
+  },
+  questionPrompt: {
+    ...Typography.body,
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.text,
+    marginBottom: 20,
+  },
+  inputContainer: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.backgroundSecondary,
+    padding: 14,
   },
   textInput: {
     ...Typography.body,
@@ -361,54 +413,44 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minHeight: 120,
   },
-  charCountContainer: {
-    alignItems: 'flex-end',
+  inputMeta: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingTop: 6,
   },
   charCount: {
     ...Typography.caption,
+    fontSize: 11,
     color: Colors.textMuted,
   },
-  charCountGood: {
-    color: Colors.success,
-    fontWeight: '600',
-  },
-  editorialNote: {
+  vetoCallout: {
     flexDirection: 'row',
-    backgroundColor: Colors.backgroundSecondary,
-    padding: 14,
-    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#FFF9E6',
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginTop: 20,
+    borderColor: '#FFE08A',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 18,
   },
-  noteIcon: {
+  vetoIcon: {
     color: Colors.accentDark,
-    marginRight: 10,
-    fontSize: 14,
+    fontSize: 16,
+    marginRight: 8,
   },
-  noteText: {
+  vetoText: {
     ...Typography.caption,
-    color: Colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.accentDark,
     flex: 1,
-    lineHeight: 18,
   },
   footer: {
+    paddingHorizontal: 20,
     paddingVertical: 16,
-  },
-  errorContainer: {
-    backgroundColor: Colors.errorBackground,
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  errorText: {
-    ...Typography.caption,
-    color: Colors.error,
-    textAlign: 'center',
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
   },
   nextButton: {
     backgroundColor: Colors.primary,
@@ -422,11 +464,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   nextButtonDisabled: {
-    backgroundColor: Colors.textMuted,
+    opacity: 0.4,
     shadowOpacity: 0,
     elevation: 0,
   },
   nextButtonText: {
     ...Typography.button,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

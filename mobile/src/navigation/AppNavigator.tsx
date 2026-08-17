@@ -14,6 +14,7 @@ import { ObjectiveQuestionnaireScreen } from '../screens/ObjectiveQuestionnaireS
 import { SubjectiveQuestionnaireScreen } from '../screens/SubjectiveQuestionnaireScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { WeeklyMatchesScreen } from '../screens/WeeklyMatchesScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainStack = createNativeStackNavigator<MainStackParamList>();
@@ -52,6 +53,7 @@ export const AppNavigator: React.FC = () => {
             />
             <MainStack.Screen name="Home" component={HomeScreen} />
             <MainStack.Screen name="WeeklyMatches" component={WeeklyMatchesScreen} />
+            <MainStack.Screen name="EditProfile" component={EditProfileScreen} />
           </MainStack.Navigator>
         </QuestionnaireProvider>
       ) : (
