@@ -3,7 +3,8 @@ import asyncio
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy import select, delete, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Profile, Answer, Koota, WeeklyMatchList, utc_now
+from app.models import Profile, Answer, Koota, WeeklyMatchList, FollowingList, utc_now
+from app.matching.social_overlap import compute_overlap
 from app.scoring.objective import calculate_objective_match
 from app.scoring.semantic import score_all_subjective_kootas, cosine_similarity, get_embedding
 from app.scoring.nli import evaluate_nli_pair
@@ -221,8 +222,12 @@ async def run_candidates_funnel_for_profile(
     shortlist_10 = await screen_nli_top_10(
         db, target_profile, candidates_50, target_answers, kootas_metadata, limit=10
     )
-    if not shortlist_10:
-        return []
+    # Pre-fetch FollowingList for target and shortlist candidates
+    all_shortlist_ids = [profile_id] + [cand.id for cand, _, _, _ in shortlist_10]
+    stmt_f = select(FollowingList).where(FollowingList.profile_id.in_(all_shortlist_ids))
+    res_f = await db.execute(stmt_f)
+    f_map = {f.profile_id: f for f in res_f.scalars().all()}
+    target_f = f_map.get(profile_id)
 
     # Step 4: LLM Judge on top 10 shortlist only (evaluated concurrently)
     async def _evaluate_single_candidate(cand_tuple):
@@ -239,6 +244,16 @@ async def run_candidates_funnel_for_profile(
             llm_judge_results=llm_judge_map,
         )
         tier_eval = classify_tier(aggregate, kootas_metadata)
+        
+        # Social overlap bonus signal (computed after tiering, strictly non-gating)
+        cand_f = f_map.get(cand.id)
+        overlap_info = compute_overlap(
+            usernames_a=target_f.usernames if target_f else [],
+            usernames_b=cand_f.usernames if cand_f else [],
+            opted_in_a=target_f.opted_in if target_f else False,
+            opted_in_b=cand_f.opted_in if cand_f else False,
+        )
+
         return WeeklyMatchList(
             profile_id=profile_id,
             candidate_id=cand.id,
@@ -247,6 +262,8 @@ async def run_candidates_funnel_for_profile(
             alignment_points=tier_eval.alignment_points,
             friction_points=tier_eval.friction_points,
             contradiction_gates=aggregate.contradiction_gates,
+            social_overlap_score=overlap_info["overlap_score"],
+            shared_account_count=overlap_info["shared_count"],
             generated_at=utc_now(),
         )
 

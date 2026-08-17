@@ -62,9 +62,30 @@ class Profile(Base):
         back_populates="profile",
         cascade="all, delete-orphan",
     )
+    following_list = relationship(
+        "FollowingList",
+        back_populates="profile",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
-        return f"<Profile id='{self.id}' name='{self.name}'>"
+        return f"<Profile id='{self.id}' name='{self.name}' age={self.age}>"
+
+
+class FollowingList(Base):
+    __tablename__ = "following_lists"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    usernames = Column(JSON, default=list, nullable=False)  # Normalized list of lowercased, deduplicated usernames
+    uploaded_at = Column(DateTime, default=utc_now, nullable=False)
+    opted_in = Column(Boolean, default=True, nullable=False)
+
+    profile = relationship("Profile", back_populates="following_list")
+
+    def __repr__(self) -> str:
+        return f"<FollowingList profile='{self.profile_id}' count={len(self.usernames or [])} opted_in={self.opted_in}>"
 
 
 class Answer(Base):
@@ -76,7 +97,8 @@ class Answer(Base):
     question_index = Column(Integer, nullable=False)  # 0-indexed within question_type
     question_type = Column(String(50), nullable=False)  # "objective" or "subjective"
     raw_value = Column(Text, nullable=False)  # raw answer text or option value
-    embedding = Column(JSON, nullable=True)  # Cached vector as JSON float array [dim=384/etc.]
+    embedding = Column(JSON, nullable=True)  # List of 384 floats for subjective questions
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     profile = relationship("Profile", back_populates="answers")
     koota = relationship("Koota", back_populates="answers")
@@ -100,6 +122,8 @@ class MatchResult(Base):
     disagreement_flags = Column(JSON, default=list, nullable=False)
     alignment_points = Column(JSON, default=list, nullable=False)
     friction_points = Column(JSON, default=list, nullable=False)
+    social_overlap_score = Column(Float, default=0.0, nullable=True)
+    shared_account_count = Column(Integer, default=0, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     def __repr__(self) -> str:
@@ -132,6 +156,8 @@ class WeeklyMatchList(Base):
     alignment_points = Column(JSON, default=list, nullable=False)
     friction_points = Column(JSON, default=list, nullable=False)
     contradiction_gates = Column(JSON, default=list, nullable=False)
+    social_overlap_score = Column(Float, default=0.0, nullable=True)
+    shared_account_count = Column(Integer, default=0, nullable=True)
     generated_at = Column(DateTime, default=utc_now, nullable=False)
 
     profile = relationship("Profile", foreign_keys=[profile_id], back_populates="weekly_matches")

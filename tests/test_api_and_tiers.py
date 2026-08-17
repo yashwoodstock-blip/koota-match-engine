@@ -182,6 +182,70 @@ def test_api_profile_and_match_lifecycle(monkeypatch):
         # 6. GET /match/{p_a_id}/candidates
         cand_res = client.get(f"/match/{p_a_id}/candidates")
         assert cand_res.status_code == 200
-        candidates = cand_res.json()
-        assert len(candidates) >= 1
-        assert any(c["candidate_id"] == p_b_id for c in candidates)
+        cands = cand_res.json()
+        assert len(cands) >= 1
+        assert any(c["candidate_id"] == p_b_id for c in cands)
+
+
+def test_social_overlap_bonus_field_does_not_alter_tier_or_score(monkeypatch):
+    """Two profile comparisons with identical Koota answers but differing social overlap
+    produce identical overall_score and tier — only the social overlap fields differ.
+    """
+    async def mock_emb(text, *args, **kwargs):
+        return [0.5] * 384
+
+    monkeypatch.setattr("app.scoring.semantic.fetch_hf_embedding", mock_emb)
+
+    from app.auth.invite import create_invite_session_token
+    token_1 = create_invite_session_token("INV_O1")
+    token_2 = create_invite_session_token("INV_O2")
+    token_3 = create_invite_session_token("INV_O3")
+
+    with TestClient(app) as client:
+        # Create Profile 1 (Base), Profile 2 (Shared accounts), Profile 3 (Disjoint accounts)
+        p1 = client.post("/profiles", json={
+            "name": "User One", "age": 28, "gender": "male", "religion": "Hindu", "caste": "Brahmin",
+            "caste_preference": "no_preference", "city": "Delhi", "invite_token": token_1,
+        }).json()
+        p2 = client.post("/profiles", json={
+            "name": "User Two", "age": 28, "gender": "female", "religion": "Hindu", "caste": "Brahmin",
+            "caste_preference": "no_preference", "city": "Delhi", "invite_token": token_2,
+        }).json()
+        p3 = client.post("/profiles", json={
+            "name": "User Three", "age": 28, "gender": "female", "religion": "Hindu", "caste": "Brahmin",
+            "caste_preference": "no_preference", "city": "Delhi", "invite_token": token_3,
+        }).json()
+
+        # Submit identical answers for Profile 2 and Profile 3
+        answers = [
+            {"koota_id": 7, "question_index": 0, "question_type": "objective", "raw_value": "engage immediately"},
+            {"koota_id": 7, "question_index": 1, "question_type": "objective", "raw_value": "same-day"},
+            {"koota_id": 41, "question_index": 0, "question_type": "subjective", "raw_value": "Shared life companionship."},
+        ]
+        client.post(f"/profiles/{p1['id']}/answers/batch", json={"answers": answers})
+        client.post(f"/profiles/{p2['id']}/answers/batch", json={"answers": answers})
+        client.post(f"/profiles/{p3['id']}/answers/batch", json={"answers": answers})
+
+        # Profile 1 and 2 share accounts
+        client.post(f"/profiles/{p1['id']}/following", json={"usernames": ["natgeo", "hubermanlab", "virat.kohli"]})
+        client.post(f"/profiles/{p2['id']}/following", json={"usernames": ["natgeo", "hubermanlab", "virat.kohli"]})
+
+        # Profile 3 has disjoint accounts
+        client.post(f"/profiles/{p3['id']}/following", json={"usernames": ["account_x", "account_y", "account_z"]})
+
+        # Compare 1 with 2 vs 1 with 3
+        res_1_2 = client.post(f"/match/{p1['id']}/{p2['id']}").json()
+        res_1_3 = client.post(f"/match/{p1['id']}/{p3['id']}").json()
+
+        # OVERALL SCORE AND TIER MUST BE 100% IDENTICAL
+        assert res_1_2["overall_score"] == res_1_3["overall_score"]
+        assert res_1_2["tier"] == res_1_3["tier"]
+        assert res_1_2["raw_composite_score"] == res_1_3["raw_composite_score"]
+        assert res_1_2["tier_ceiling"] == res_1_3["tier_ceiling"]
+
+        # ONLY SOCIAL OVERLAP FIELDS DIFFER
+        assert res_1_2["social_overlap_score"] == 1.0
+        assert res_1_2["shared_account_count"] == 3
+
+        assert res_1_3["social_overlap_score"] == 0.0
+        assert res_1_3["shared_account_count"] == 0

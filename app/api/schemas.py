@@ -92,6 +92,8 @@ class MatchResponse(BaseModel):
     contradiction_gates: List[ContradictionGateDTO] = []
     llm_judge_insights: Dict[int, LLMJudgeInsightDTO] = {}
     hard_filter_reason: Optional[str] = None
+    social_overlap_score: Optional[float] = 0.0
+    shared_account_count: Optional[int] = 0
 
 
 class CandidateMatchSummary(BaseModel):
@@ -104,3 +106,5 @@ class CandidateMatchSummary(BaseModel):
     friction_points: List[str] = []
     disagreement_count: int = 0
     contradiction_count: int = 0
+    social_overlap_score: Optional[float] = 0.0
+    shared_account_count: Optional[int] = 0

@@ -8,6 +8,7 @@ from app.api.routes_profiles import router as profiles_router
 from app.api.routes_match import router as match_router
 from app.api.routes_auth import router as auth_router
 from app.api.routes_weekly import router as weekly_router
+from app.api.routes_following import router as following_router
 
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.add_middleware(
 # Wire API routers
 app.include_router(auth_router)
 app.include_router(profiles_router)
+app.include_router(following_router)
 app.include_router(match_router)
 app.include_router(weekly_router)
 

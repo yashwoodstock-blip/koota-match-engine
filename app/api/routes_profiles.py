@@ -178,3 +178,15 @@ async def check_completion(profile_id: str, db: AsyncSession = Depends(get_db)):
         total_kootas_count=len(all_koota_ids),
         missing_koota_ids=missing,
     )
+
+
+@router.get("/{profile_id}/candidates")
+async def get_profile_candidates_alias(
+    profile_id: str,
+    min_score: float = 0.50,
+    max_age_gap: int = 2,
+    db: AsyncSession = Depends(get_db),
+):
+    """Alias for /match/{profile_id}/candidates."""
+    from app.api.routes_match import get_ranked_candidates
+    return await get_ranked_candidates(profile_id=profile_id, min_score=min_score, max_age_gap=max_age_gap, db=db)

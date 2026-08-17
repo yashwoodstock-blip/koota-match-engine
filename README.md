@@ -37,6 +37,27 @@ Aadhaar/DigiLocker KYC has been replaced by a **strict invite-only gate**:
 
 ---
 
+## 👥 Phase 7: Opt-In Social Following Overlap Signal
+
+An optional, strictly additive **social overlap bonus signal** based on public account following overlap (e.g. from an Instagram client-side export):
+
+```
+ ┌───────────────────────────┐      ┌─────────────────────────────┐      ┌───────────────────────────────┐
+ │ Client-Side Export Parser │      │ POST /profiles/{id}/following│     │ Match Output Bonus Fields     │
+ │ (Extracts usernames only) │ ───► │ (Normalizes & Stores list)  │ ───► │  • social_overlap_score (float)│
+ │ NEVER sends ZIP to server │      │ (opted_in=True)             │      │  • shared_account_count (int) │
+ └───────────────────────────┘      └─────────────────────────────┘      └───────────────────────────────┘
+```
+
+### Strict Scope & Privacy Boundaries:
+- **No ZIP or Archive Ingestion**: This backend never receives, parses, or stores ZIP files or binary archives. The Instagram ZIP is parsed client-side in the browser/app, and only the resulting list of plain username strings is sent via `POST /profiles/{id}/following`.
+- **Usernames Only**: No hashtags, comments, direct messages, ad interests, or search queries are accepted or modeled.
+- **Count & Score Only**: API match endpoints (`/match/{a}/{b}`, `/match/{id}/candidates`, `/profiles/{id}/weekly-matches`) **never expose raw usernames or shared account names** to either party — only the computed Jaccard ratio (`social_overlap_score: float`) and shared account count (`shared_account_count: int`).
+- **Strictly Non-Gating & Additive**: The social overlap calculation executes **strictly after** the 42-Koota scoring and tiering pipeline has concluded. It has **zero ability** to alter, gate, or override `overall_score`, `tier`, or `tier_ceiling`.
+- **Complete Opt-Out Purge**: Calling `DELETE /profiles/{id}/following` permanently removes the `FollowingList` record, sets `opted_in=False`, and resets the overlap signal to `0.0`.
+
+---
+
 ## 🌪️ The Weekly Precomputed Match Funnel
 
 Rather than running heavy on-request matching during user browsing, candidate discovery runs on a **Sunday 00:00 UTC batch job** with a monotonic 5-stage funnel:
@@ -102,7 +123,8 @@ The engine evaluates compatibility across 14 Pillars weighted on a research-cali
 To guarantee total matrimonial privacy:
 - **Zero Raw Free-Text Answers** are returned in any API response.
 - **Zero Demographic Data** (income, caste, raw age) is leaked in match payloads.
-- **Sanitized Outputs Only**: Responses deliver precomputed numeric scores, compatibility tiers, alignment insights, friction alerts, and contradiction gate notes.
+- **Zero Raw Usernames or Following Lists** are exposed in match responses.
+- **Sanitized Outputs Only**: Responses deliver precomputed numeric scores, compatibility tiers, alignment insights, friction alerts, contradiction gate notes, and non-gating aggregate overlap statistics.
 
 ---
 
@@ -118,6 +140,7 @@ koota-match-engine/
 ├── app/
 │   ├── api/
 │   │   ├── routes_auth.py         # /auth/invite/generate, /auth/invite/redeem, /auth/google/callback
+│   │   ├── routes_following.py    # POST/DELETE /profiles/{id}/following (opt-in overlap signal)
 │   │   ├── routes_match.py        # POST /match/{id_a}/{id_b} and GET /match/{id}/candidates
 │   │   ├── routes_profiles.py     # Profile CRUD (invite-gated) and answer submissions
 │   │   ├── routes_weekly.py       # GET /profiles/{id}/weekly-matches (strictly read-only)
@@ -132,7 +155,8 @@ koota-match-engine/
 │   │   └── session.py             # SQLAlchemy 2.0 async session and engine factory
 │   ├── matching/
 │   │   ├── batch_runner.py        # Scheduled sequential batch runner with 30 RPM rate limiting
-│   │   └── candidates_batch.py    # 5-stage precomputed funnel (SQL -> ANN -> NLI -> LLM -> Top 5)
+│   │   ├── candidates_batch.py    # 5-stage precomputed funnel (SQL -> ANN -> NLI -> LLM -> Top 5)
+│   │   └── social_overlap.py      # Pure function Jaccard overlap computation on following lists
 │   ├── scoring/
 │   │   ├── aggregate.py           # Gated aggregation math & contradiction gate detector
 │   │   ├── llm_judge.py           # Multi-provider Groq / OpenRouter / Gemini Judge engine
@@ -141,19 +165,21 @@ koota-match-engine/
 │   │   ├── semantic.py            # Sentence similarity, embedding cache, and vector cosine math
 │   │   └── tiers.py               # 3-tier classifier and 42 curated domain insight templates
 │   ├── main.py                    # FastAPI app initialization, lifespan hooks, CORS, and healthcheck
-│   └── models.py                  # SQLAlchemy ORM models (Profile, Answer, Koota, InviteCode, WeeklyMatchList)
+│   └── models.py                  # SQLAlchemy ORM models (Profile, Answer, Koota, InviteCode, FollowingList, WeeklyMatchList)
 ├── tests/
 │   ├── synthetic_profiles.json    # 16 synthetic profiles with diverse edge-case traits
 │   ├── test_aggregation.py        # Tests for score weighting and divergence detection
-│   ├── test_api_and_tiers.py      # End-to-end API lifecycle and tier classification tests
+│   ├── test_api_and_tiers.py      # End-to-end API lifecycle, tier classification, and bonus invariance
 │   ├── test_auth.py               # Tests for single-use invite codes, expiry, Google OAuth, and 403 gate
 │   ├── test_candidates_batch.py   # Tests for monotonic funnel narrowing, NLI drops, and 30 RPM limit
+│   ├── test_following_api.py      # Tests for Following upload, replacement, deletion, and privacy assertions
 │   ├── test_gated_aggregation.py  # Tests for Koota 41 veto and Top-10 contradiction ceilings
 │   ├── test_llm_judge.py          # Unit tests for multi-provider LLM Judge and fallbacks
 │   ├── test_nli_scorer.py         # Tests for NLI entailment and contradiction formulas
 │   ├── test_objective_scorer.py   # Tests for age gap, religion match, and partial credit matrices
 │   ├── test_phase1_scaffolding.py # Basic scaffolding, health check, and JSON schema tests
 │   ├── test_semantic_scorer.py    # Tests for vector caching and cosine similarity math
+│   ├── test_social_overlap.py     # Tests for Jaccard calculation, ratios, opt-out short-circuits
 │   ├── test_synthetic_matching.py # Edge-case assertions on 16 synthetic candidate pairs
 │   └── test_weekly_matches_api.py # Tests for constant-time, read-only weekly matches API
 ├── .env.example                   # Annotated template for all required API keys
@@ -165,44 +191,39 @@ koota-match-engine/
 
 ## 🔌 API Reference
 
-### 1. Generate Invite Code (Admin)
+### 1. Upload Opt-In Following List
 ```http
-POST /auth/invite/generate
+POST /profiles/{profile_id}/following
 Content-Type: application/json
 
 {
-  "created_by": "admin",
-  "expires_in_days": 30
-}
-```
-**Response (201 Created):**
-```json
-{
-  "status": "success",
-  "code": "K9X4M2P7",
-  "expires_at": "2026-09-17T02:00:00.000000Z",
-  "created_by": "admin"
-}
-```
-
----
-
-### 2. Redeem Invite Code
-```http
-POST /auth/invite/redeem
-Content-Type: application/json
-
-{
-  "code": "K9X4M2P7"
+  "usernames": ["natgeo", "virat.kohli", "hubermanlab"]
 }
 ```
 **Response (200 OK):**
 ```json
 {
-  "status": "valid",
-  "message": "Invite code verified successfully.",
-  "invite_code": "K9X4M2P7",
-  "invite_token": "K9X4M2P7:1787002000:a1b2c3d4..."
+  "status": "success",
+  "profile_id": "3ea2571d-a589-4966-92c5-272f10814a8f",
+  "account_count": 3,
+  "opted_in": true,
+  "uploaded_at": "2026-08-18T02:00:00.000000Z"
+}
+```
+
+---
+
+### 2. Delete / Opt-Out Following List
+```http
+DELETE /profiles/{profile_id}/following
+```
+**Response (200 OK — Idempotent):**
+```json
+{
+  "status": "success",
+  "profile_id": "3ea2571d-a589-4966-92c5-272f10814a8f",
+  "opted_in": false,
+  "message": "Following list removed and opted out of social overlap signal."
 }
 ```
 
@@ -230,6 +251,8 @@ GET /profiles/{profile_id}/weekly-matches
       ],
       "friction_points": [],
       "contradiction_gates": [],
+      "social_overlap_score": 0.4286,
+      "shared_account_count": 6,
       "generated_at": "2026-08-18T00:00:00Z"
     }
   ]
@@ -238,9 +261,9 @@ GET /profiles/{profile_id}/weekly-matches
 
 ---
 
-## 🧪 Automated Test Suite (49 Tests)
+## 🧪 Automated Test Suite (60 Tests)
 
-The engine features a comprehensive, 100% passing test suite across 13 test modules:
+The engine features a comprehensive, 100% passing test suite across 15 test modules:
 
 ```text
 tests/test_phase1_scaffolding.py                 [3/3 passed]
@@ -249,13 +272,15 @@ tests/test_semantic_scorer.py                    [6/6 passed]
 tests/test_nli_scorer.py                         [3/3 passed]
 tests/test_llm_judge.py                          [4/4 passed]
 tests/test_gated_aggregation.py                  [2/2 passed]
-tests/test_api_and_tiers.py                      [4/4 passed]
+tests/test_social_overlap.py                     [6/6 passed]
+tests/test_following_api.py                      [4/4 passed]
+tests/test_api_and_tiers.py                      [5/5 passed]
 tests/test_aggregation.py                        [3/3 passed]
 tests/test_synthetic_matching.py                 [6/6 passed]
 tests/test_auth.py                               [5/5 passed]
 tests/test_candidates_batch.py                   [3/3 passed]
 tests/test_weekly_matches_api.py                 [2/2 passed]
-======================== 49 passed in 3.36s ========================
+======================== 60 passed in 5.70s ========================
 ```
 
 ---

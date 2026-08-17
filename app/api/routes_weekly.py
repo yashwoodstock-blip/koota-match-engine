@@ -21,6 +21,8 @@ class WeeklyMatchDTO(BaseModel):
     alignment_points: List[str] = []
     friction_points: List[str] = []
     contradiction_gates: List[Dict[str, Any]] = []
+    social_overlap_score: Optional[float] = 0.0
+    shared_account_count: Optional[int] = 0
     generated_at: datetime
 
 
@@ -70,6 +72,8 @@ async def get_weekly_matches(
                 alignment_points=match_record.alignment_points or [],
                 friction_points=match_record.friction_points or [],
                 contradiction_gates=match_record.contradiction_gates or [],
+                social_overlap_score=match_record.social_overlap_score or 0.0,
+                shared_account_count=match_record.shared_account_count or 0,
                 generated_at=match_record.generated_at,
             )
         )

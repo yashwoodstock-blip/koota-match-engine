@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.models import Profile, Answer, Koota, MatchResult
+from app.models import Profile, Answer, Koota, MatchResult, FollowingList
+from app.matching.social_overlap import compute_overlap
 from app.api.schemas import (
     MatchResponse,
     CandidateMatchSummary,
@@ -99,6 +100,19 @@ async def score_match(
         )
         tier_eval = classify_tier(aggregate, kootas_meta)
 
+        # 8. Social Overlap Bonus Signal (Computed after tiering, strictly non-gating)
+        stmt_f = select(FollowingList).where(FollowingList.profile_id.in_([profile_a_id, profile_b_id]))
+        res_f = await db.execute(stmt_f)
+        f_map = {f.profile_id: f for f in res_f.scalars().all()}
+        f_a = f_map.get(profile_a_id)
+        f_b = f_map.get(profile_b_id)
+        overlap_info = compute_overlap(
+            usernames_a=f_a.usernames if f_a else [],
+            usernames_b=f_b.usernames if f_b else [],
+            opted_in_a=f_a.opted_in if f_a else False,
+            opted_in_b=f_b.opted_in if f_b else False,
+        )
+
         # Store match record
         match_record = MatchResult(
             profile_a_id=profile_a_id,
@@ -112,6 +126,8 @@ async def score_match(
             disagreement_flags=[],
             alignment_points=tier_eval.alignment_points,
             friction_points=tier_eval.friction_points,
+            social_overlap_score=overlap_info["overlap_score"],
+            shared_account_count=overlap_info["shared_count"],
         )
         db.add(match_record)
         await db.commit()
@@ -132,6 +148,8 @@ async def score_match(
             contradiction_gates=[],
             llm_judge_insights={},
             hard_filter_reason=obj_result.hard_filter_reason,
+            social_overlap_score=overlap_info["overlap_score"],
+            shared_account_count=overlap_info["shared_count"],
         )
 
     # 5. Concurrently run Semantic Cosine + Parallel LLM Judge for top subjective Kootas
@@ -153,7 +171,20 @@ async def score_match(
     # 7. Tier Classifier & Templated Insights with Tier Ceilings
     tier_eval = classify_tier(aggregate, kootas_meta)
 
-    # 8. Persist Match Result
+    # 8. Social Overlap Bonus Signal (Computed after tiering, strictly non-gating)
+    stmt_f = select(FollowingList).where(FollowingList.profile_id.in_([profile_a_id, profile_b_id]))
+    res_f = await db.execute(stmt_f)
+    f_map = {f.profile_id: f for f in res_f.scalars().all()}
+    f_a = f_map.get(profile_a_id)
+    f_b = f_map.get(profile_b_id)
+    overlap_info = compute_overlap(
+        usernames_a=f_a.usernames if f_a else [],
+        usernames_b=f_b.usernames if f_b else [],
+        opted_in_a=f_a.opted_in if f_a else False,
+        opted_in_b=f_b.opted_in if f_b else False,
+    )
+
+    # 9. Persist Match Result
     match_record = MatchResult(
         profile_a_id=profile_a_id,
         profile_b_id=profile_b_id,
@@ -166,6 +197,8 @@ async def score_match(
         disagreement_flags=aggregate.disagreement_flags,
         alignment_points=tier_eval.alignment_points,
         friction_points=tier_eval.friction_points,
+        social_overlap_score=overlap_info["overlap_score"],
+        shared_account_count=overlap_info["shared_count"],
     )
     db.add(match_record)
     await db.commit()
@@ -188,6 +221,8 @@ async def score_match(
             k: LLMJudgeInsightDTO(**v) for k, v in aggregate.llm_judge_insights.items()
         },
         hard_filter_reason=None,
+        social_overlap_score=overlap_info["overlap_score"],
+        shared_account_count=overlap_info["shared_count"],
     )
 
 
@@ -214,6 +249,13 @@ async def get_ranked_candidates(
     ans_stmt_t = select(Answer).where(Answer.profile_id == profile_id)
     res_t_ans = await db.execute(ans_stmt_t)
     target_answers = list(res_t_ans.scalars().all())
+
+    # Pre-fetch FollowingList for target and candidates
+    all_profile_ids = [profile_id] + [c.id for c in candidates]
+    stmt_f = select(FollowingList).where(FollowingList.profile_id.in_(all_profile_ids))
+    res_f = await db.execute(stmt_f)
+    f_map = {f.profile_id: f for f in res_f.scalars().all()}
+    target_following = f_map.get(profile_id)
 
     kootas_meta = await load_kootas_metadata(db)
     ranked_list: List[CandidateMatchSummary] = []
@@ -248,6 +290,13 @@ async def get_ranked_candidates(
 
         if agg.overall_score is not None and agg.overall_score >= min_score and agg.tier_ceiling != "not viable":
             tier_eval = classify_tier(agg, kootas_meta)
+            cand_following = f_map.get(cand.id)
+            overlap_info = compute_overlap(
+                usernames_a=target_following.usernames if target_following else [],
+                usernames_b=cand_following.usernames if cand_following else [],
+                opted_in_a=target_following.opted_in if target_following else False,
+                opted_in_b=cand_following.opted_in if cand_following else False,
+            )
             ranked_list.append(
                 CandidateMatchSummary(
                     candidate_id=cand.id,
@@ -259,6 +308,8 @@ async def get_ranked_candidates(
                     friction_points=tier_eval.friction_points,
                     disagreement_count=len(agg.disagreement_flags),
                     contradiction_count=len(agg.contradiction_gates),
+                    social_overlap_score=overlap_info["overlap_score"],
+                    shared_account_count=overlap_info["shared_count"],
                 )
             )
 
