@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +19,7 @@ import {
   getWeeklyMatches,
   postInterestAction,
   WeeklyMatchDTO,
+  RefreshMatchesResponse,
 } from '../api/authApi';
 import {
   interestReducer,
@@ -26,9 +29,13 @@ import { MatchCard } from '../components/MatchCard';
 import { DeclineConfirmationModal } from '../components/DeclineConfirmationModal';
 import { MutualRevealAnimation } from '../components/MutualRevealAnimation';
 import { EditorialHeader } from '../components/EditorialHeader';
+import { RefreshMatchesButton } from '../components/RefreshMatchesButton';
+import { MainStackParamList } from '../navigation/types';
+
+type NavProp = NativeStackNavigationProp<MainStackParamList, 'WeeklyMatches'>;
 
 export const WeeklyMatchesScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const { session, profile } = useAuth();
   const [state, dispatch] = useReducer(interestReducer, initialMatchesState);
   const [isDeclineSubmitting, setIsDeclineSubmitting] = useState<boolean>(false);
@@ -106,6 +113,39 @@ export const WeeklyMatchesScreen: React.FC = () => {
     }
   };
 
+  // 4. Handle On-Demand Funnel Refresh Result
+  const handleRefreshSuccess = (res: RefreshMatchesResponse) => {
+    fetchMatches();
+  };
+
+  const renderHeader = () => (
+    <View>
+      {/* On-Demand Refresh Button */}
+      <RefreshMatchesButton onRefreshSuccess={handleRefreshSuccess} />
+
+      {/* Direct Compatibility Code Banner */}
+      <TouchableOpacity
+        style={styles.directCodeBanner}
+        onPress={() => navigation.navigate('CompatibilityCode')}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Check Direct Compatibility with someone specific"
+      >
+        <View style={styles.directCodeIconBadge}>
+          <Text style={styles.directCodeIcon}>🔑</Text>
+        </View>
+        <View style={styles.directCodeTextWrap}>
+          <Text style={styles.directCodeTitle}>Have someone specific in mind?</Text>
+          <Text style={styles.directCodeSubtitle}>
+            Share or enter a 24h mutual consent code →
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      <Text style={styles.sectionHeader}>CURATED CANDIDATES ({state.matches.length})</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -143,6 +183,7 @@ export const WeeklyMatchesScreen: React.FC = () => {
           <FlatList
             data={state.matches}
             keyExtractor={(item) => item.candidate_id}
+            ListHeaderComponent={renderHeader}
             renderItem={({ item }) => (
               <MatchCard
                 match={item}
@@ -161,30 +202,31 @@ export const WeeklyMatchesScreen: React.FC = () => {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>✦</Text>
-                <Text style={styles.emptyTitle}>No Active Cohort Matches</Text>
+                <Text style={styles.emptyTitle}>No Active Matches In Pool</Text>
                 <Text style={styles.emptySubtitle}>
-                  Your compatibility profile is queued for the upcoming Sunday precomputation run.
+                  Your profile has recently been updated or no compatible candidates match your hard filters. Use the button above to run the 5-stage funnel on demand.
                 </Text>
               </View>
             }
           />
         )}
 
-        {/* Irreversible Decline Modal */}
+        {/* Decline Confirmation Hard-Stop Modal */}
         <DeclineConfirmationModal
-          visible={state.decliningCandidate !== null}
+          visible={!!state.decliningCandidate}
           candidate={state.decliningCandidate}
           onCancel={() => dispatch({ type: 'CLOSE_DECLINE_MODAL' })}
           onConfirmDecline={handleConfirmDecline}
           isSubmitting={isDeclineSubmitting}
         />
 
-        {/* Celebratory Mutual Reveal Animation */}
-        <MutualRevealAnimation
-          candidate={state.activeMutualCandidate}
-          onDismiss={() => dispatch({ type: 'DISMISS_MUTUAL_REVEAL' })}
-        />
+        {/* Mutual Match Celebration Modal */}
+        {state.activeMutualCandidate && (
+          <MutualRevealAnimation
+            candidate={state.activeMutualCandidate}
+            onDismiss={() => dispatch({ type: 'DISMISS_MUTUAL_REVEAL' })}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -197,69 +239,116 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   header: {
-    marginTop: 10,
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   backButton: {
     alignSelf: 'flex-start',
-    marginBottom: 8,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    marginBottom: 4,
   },
   backButtonText: {
     ...Typography.bodySecondary,
     color: Colors.textSecondary,
     fontWeight: '600',
   },
+  directCodeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF9E6',
+    borderWidth: 1,
+    borderColor: '#FFE08A',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+  },
+  directCodeIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  directCodeIcon: {
+    fontSize: 16,
+  },
+  directCodeTextWrap: {
+    flex: 1,
+  },
+  directCodeTitle: {
+    ...Typography.body,
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.accentDark,
+  },
+  directCodeSubtitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  sectionHeader: {
+    ...Typography.caption,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Colors.accentDark,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  listContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    ...Typography.bodySecondary,
+    color: Colors.textSecondary,
+    marginTop: 14,
+    textAlign: 'center',
+  },
   errorBanner: {
     backgroundColor: Colors.errorBackground,
     borderWidth: 1,
     borderColor: Colors.errorBorder,
-    borderRadius: 12,
+    marginHorizontal: 24,
+    borderRadius: 10,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   errorText: {
     ...Typography.caption,
     color: Colors.error,
     textAlign: 'center',
   },
-  listContent: {
-    paddingBottom: 24,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...Typography.bodySecondary,
-    marginTop: 12,
-    color: Colors.textSecondary,
-  },
   emptyContainer: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 20,
+    padding: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    fontSize: 28,
-    color: Colors.accentDark,
-    marginBottom: 12,
+    marginTop: 10,
   },
   emptyTitle: {
     ...Typography.headline,
     fontSize: 20,
-    color: Colors.text,
+    fontFamily: 'serif',
+    color: Colors.primary,
     marginBottom: 8,
-    textAlign: 'center',
   },
   emptySubtitle: {
     ...Typography.bodySecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    color: Colors.textMuted,
   },
 });

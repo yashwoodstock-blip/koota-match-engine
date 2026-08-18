@@ -73,6 +73,25 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Compatibility Code Direct Match Card */}
+        <View style={styles.directMatchCard}>
+          <Text style={styles.cardEyebrow}>MUTUAL CONSENT CHECK</Text>
+          <Text style={styles.cardTitle}>Direct Compatibility Check</Text>
+          <Text style={styles.cardBody}>
+            Evaluate compatibility with someone specific introduced by family using a 24-hour single-use consent code.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.directMatchBtn}
+            onPress={() => navigation.navigate('CompatibilityCode')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Direct Compatibility Check"
+          >
+            <Text style={styles.directMatchBtnText}>Share or Enter Code 🔑</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Profile Settings Quick Card */}
         <View style={styles.settingsCard}>
           <Text style={styles.cardEyebrow}>PROFILE & PREFERENCES</Text>
@@ -222,6 +241,32 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.text,
     fontSize: 14,
+  },
+  directMatchCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  directMatchBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  directMatchBtnText: {
+    ...Typography.button,
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   logoutButton: {
     backgroundColor: Colors.backgroundSecondary,

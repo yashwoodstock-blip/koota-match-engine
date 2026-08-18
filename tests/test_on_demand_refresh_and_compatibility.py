@@ -353,3 +353,52 @@ async def test_compatibility_check_strictly_enforces_hard_filters():
     assert data["is_viable"] is False
     assert data["tier"] == "not viable"
     assert "Religion mismatch" in (data["hard_filter_reason"] or "")
+
+
+@pytest.mark.asyncio
+async def test_get_my_compatibility_codes_generator_view():
+    """GET /profiles/{id}/compatibility-codes returns generated codes and redemption results to creator."""
+    creator_id = await create_test_profile(name="Parent Generator", age=28, religion="Hindu")
+    redeemer_id = await create_test_profile(name="Prospective Partner", age=29, religion="Hindu")
+    await populate_minimal_answers(creator_id)
+    await populate_minimal_answers(redeemer_id)
+
+    # 1. Generate code
+    res_code = client.post(
+        f"/profiles/{creator_id}/compatibility-code",
+        headers={"X-Test-Profile-Id": creator_id},
+    )
+    code = res_code.json()["code"]
+
+    # 2. Before redemption: code is unused
+    res_list1 = client.get(
+        f"/profiles/{creator_id}/compatibility-codes",
+        headers={"X-Test-Profile-Id": creator_id},
+    )
+    assert res_list1.status_code == 200
+    codes1 = res_list1.json()["codes"]
+    assert len(codes1) >= 1
+    target_item1 = next(item for item in codes1 if item["code"] == code)
+    assert target_item1["is_used"] is False
+    assert target_item1["match_result"] is None
+
+    # 3. Redeem code
+    client.post(
+        f"/profiles/{redeemer_id}/compatibility-check",
+        json={"code": code},
+        headers={"X-Test-Profile-Id": redeemer_id},
+    )
+
+    # 4. After redemption: creator can see redeemed status and match result!
+    res_list2 = client.get(
+        f"/profiles/{creator_id}/compatibility-codes",
+        headers={"X-Test-Profile-Id": creator_id},
+    )
+    assert res_list2.status_code == 200
+    codes2 = res_list2.json()["codes"]
+    target_item2 = next(item for item in codes2 if item["code"] == code)
+    assert target_item2["is_used"] is True
+    assert target_item2["used_by_profile_id"] == redeemer_id
+    assert target_item2["match_result"] is not None
+    assert target_item2["match_result"]["candidate_name"] == "Prospective Partner"
+

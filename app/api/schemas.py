@@ -189,3 +189,19 @@ class CompatibilityCheckResponse(BaseModel):
     shared_account_count: Optional[int] = 0
     calculated_at: datetime
 
+
+class CompatibilityCodeItemDTO(BaseModel):
+    code: str
+    created_at: datetime
+    expires_at: datetime
+    is_used: bool
+    used_by_profile_id: Optional[str] = None
+    used_at: Optional[datetime] = None
+    match_result: Optional[CandidateMatchSummary] = None
+
+
+class CompatibilityCodesListResponse(BaseModel):
+    profile_id: str
+    codes: List[CompatibilityCodeItemDTO] = []
+
+

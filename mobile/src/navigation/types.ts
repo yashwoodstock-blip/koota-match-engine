@@ -11,4 +11,5 @@ export type MainStackParamList = {
   Home: undefined;
   WeeklyMatches: undefined;
   EditProfile: undefined;
+  CompatibilityCode: undefined;
 };

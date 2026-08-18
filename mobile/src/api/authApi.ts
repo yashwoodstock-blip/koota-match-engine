@@ -282,6 +282,65 @@ export async function postInterestAction(
   });
 }
 
+export interface CandidateSummaryDTO {
+  candidate_id: string;
+  candidate_name: string;
+  is_viable: boolean;
+  tier: string;
+  overall_score?: number;
+  alignment_points: string[];
+  friction_points: string[];
+  disagreement_count: number;
+  contradiction_count: number;
+  social_overlap_score?: number;
+  shared_account_count?: number;
+}
+
+export interface RefreshMatchesResponse {
+  profile_id: string;
+  total_matches: number;
+  refreshed_at: string;
+  next_eligible_at: string;
+  matches: CandidateSummaryDTO[];
+}
+
+export interface CompatibilityCodeCreateResponse {
+  code: string;
+  creator_profile_id: string;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface CompatibilityCheckResponse {
+  creator_profile_id: string;
+  redeemer_profile_id: string;
+  code: string;
+  is_viable: boolean;
+  tier: string;
+  overall_score?: number;
+  alignment_points: string[];
+  friction_points: string[];
+  hard_filter_reason?: string;
+  social_overlap_score?: number;
+  shared_account_count?: number;
+  calculated_at: string;
+}
+
+export interface CompatibilityCodeItemDTO {
+  code: string;
+  created_at: string;
+  expires_at: string;
+  is_used: boolean;
+  used_by_profile_id?: string;
+  used_at?: string;
+  match_result?: CandidateSummaryDTO;
+}
+
+export interface CompatibilityCodesListResponse {
+  profile_id: string;
+  codes: CompatibilityCodeItemDTO[];
+}
+
 /**
  * Retrieve interest status list under staged disclosure rules.
  */
@@ -294,3 +353,58 @@ export async function getInterestStatusList(
     token,
   });
 }
+
+/**
+ * On-demand funnel match refresh with 24h cooldown.
+ */
+export async function refreshWeeklyMatches(
+  token: string,
+  profileId: string
+): Promise<RefreshMatchesResponse> {
+  return await apiClient<RefreshMatchesResponse>(`/profiles/${profileId}/refresh-matches`, {
+    method: 'POST',
+    token,
+  });
+}
+
+/**
+ * Generate a 24-hour single-use mutual consent compatibility code.
+ */
+export async function generateCompatibilityCode(
+  token: string,
+  profileId: string
+): Promise<CompatibilityCodeCreateResponse> {
+  return await apiClient<CompatibilityCodeCreateResponse>(`/profiles/${profileId}/compatibility-code`, {
+    method: 'POST',
+    token,
+  });
+}
+
+/**
+ * Redeem a mutual consent compatibility code to compute compatibility.
+ */
+export async function checkCompatibilityCode(
+  token: string,
+  profileId: string,
+  code: string
+): Promise<CompatibilityCheckResponse> {
+  return await apiClient<CompatibilityCheckResponse>(`/profiles/${profileId}/compatibility-check`, {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ code }),
+  });
+}
+
+/**
+ * Retrieve list of generated compatibility codes and their redemption outcomes.
+ */
+export async function getMyCompatibilityCodes(
+  token: string,
+  profileId: string
+): Promise<CompatibilityCodesListResponse> {
+  return await apiClient<CompatibilityCodesListResponse>(`/profiles/${profileId}/compatibility-codes`, {
+    method: 'GET',
+    token,
+  });
+}
+
