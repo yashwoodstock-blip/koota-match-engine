@@ -111,6 +111,7 @@ export const QuestionnaireProvider: React.FC<{ children: React.ReactNode }> = ({
 
       await submitAnswers(token, profileId, payload);
       await refreshCompletion(profileId, token);
+      await clearLocalAnswers();
       return true;
     } catch (err: any) {
       setError(err?.message || 'Failed to submit answers to matching engine.');
