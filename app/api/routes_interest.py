@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.auth.deps import get_current_authenticated_profile, verify_profile_ownership
+from app.models import Profile
 from app.interest.interest_service import express_interest, get_interest_status_for_profile
 
 router = APIRouter(prefix="/interest", tags=["Mutual Interest"])
@@ -40,6 +42,7 @@ class InterestStatusListResponse(BaseModel):
 @router.post("", response_model=InterestResponse, status_code=status.HTTP_200_OK)
 async def handle_express_interest(
     payload: ExpressInterestRequest,
+    current_profile: Profile = Depends(get_current_authenticated_profile),
     db: AsyncSession = Depends(get_db),
 ):
     """Express interest or decline a candidate from caller's weekly matches.
@@ -50,6 +53,7 @@ async def handle_express_interest(
     - If target has 'declined', the pair never flips to 'mutual'.
     - Target must be present in caller's WeeklyMatchList.
     """
+    verify_profile_ownership(payload.profile_id, current_profile)
     result = await express_interest(
         db=db,
         profile_id=payload.profile_id,
@@ -62,6 +66,7 @@ async def handle_express_interest(
 @router.get("/{profile_id}/status", response_model=InterestStatusListResponse)
 async def handle_get_interest_status(
     profile_id: str,
+    current_profile: Profile = Depends(get_current_authenticated_profile),
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve caller's interest status for all candidates in their WeeklyMatchList.
@@ -70,8 +75,10 @@ async def handle_get_interest_status(
     - Never reveals whether the target has expressed interest unless the status is 'mutual'.
     - One-sided 'pending' or 'declined' is visible only to the expressing party.
     """
+    verify_profile_ownership(profile_id, current_profile)
     statuses = await get_interest_status_for_profile(db=db, profile_id=profile_id)
     return InterestStatusListResponse(
         profile_id=profile_id,
         statuses=[CandidateInterestStatus(**s) for s in statuses],
     )
+

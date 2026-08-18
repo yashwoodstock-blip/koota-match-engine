@@ -30,6 +30,7 @@ from app.api.schemas import (
 )
 from app.matching.candidates_batch import run_candidates_funnel_for_profile
 from app.matching.social_overlap import compute_overlap
+from app.matching.match_pipeline_service import load_kootas_metadata, ensure_utc
 from app.scoring.objective import calculate_objective_match
 from app.scoring.semantic import score_all_subjective_kootas
 from app.scoring.llm_judge import evaluate_all_top_kootas_llm_judge
@@ -39,34 +40,6 @@ from app.scoring.tiers import classify_tier
 router = APIRouter(tags=["On-Demand Matching"])
 
 UNAMBIGUOUS_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-
-
-async def load_kootas_metadata(db: AsyncSession) -> Dict[int, Dict[str, Any]]:
-    """Load metadata for all 42 Kootas into a fast lookup dict."""
-    stmt = select(Koota)
-    res = await db.execute(stmt)
-    kootas = res.scalars().all()
-    return {
-        k.koota_id: {
-            "weight": k.weight,
-            "name": k.name,
-            "pillar": k.pillar,
-            "question_type": k.question_type,
-            "is_hard_filter": k.is_hard_filter,
-            "subjective_questions": k.subjective_questions,
-            "objective_questions": k.objective_questions,
-        }
-        for k in kootas
-    }
-
-
-def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
-    """Ensure datetime has UTC timezone."""
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
 
 
 @router.post("/profiles/{profile_id}/refresh-matches", response_model=RefreshMatchesResponse)

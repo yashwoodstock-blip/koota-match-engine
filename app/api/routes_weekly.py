@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
+from app.auth.deps import get_current_authenticated_profile, verify_profile_ownership
 from app.models import Profile, WeeklyMatchList, Interest
 
 router = APIRouter(prefix="/profiles", tags=["Weekly Matches"])
@@ -39,6 +40,7 @@ class WeeklyMatchListResponse(BaseModel):
 @router.get("/{profile_id}/weekly-matches", response_model=WeeklyMatchListResponse)
 async def get_weekly_matches(
     profile_id: str,
+    current_profile: Profile = Depends(get_current_authenticated_profile),
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve precomputed weekly matches for a profile.
@@ -49,12 +51,7 @@ async def get_weekly_matches(
     - Staged-disclosure rule: interest_status exposes caller's perspective only;
       a target's pending status is hidden until mutual.
     """
-    # 1. Verify Profile exists
-    stmt_p = select(Profile).where(Profile.id == profile_id)
-    res_p = await db.execute(stmt_p)
-    profile = res_p.scalar_one_or_none()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found.")
+    verify_profile_ownership(profile_id, current_profile)
 
     # 2. Fetch precomputed matches from WeeklyMatchList
     stmt = (

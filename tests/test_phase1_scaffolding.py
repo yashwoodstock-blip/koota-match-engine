@@ -68,10 +68,12 @@ async def test_seed_kootas_database():
 
 
 def test_health_endpoint():
-    """Verify FastAPI health check endpoint returns 200."""
+    """Verify FastAPI health check endpoint returns 200 and validates DB readiness."""
     with TestClient(app) as client:
         response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
+        assert data["database"] == "healthy"
         assert data["service"] == "koota-match-engine"
+

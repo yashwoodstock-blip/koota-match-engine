@@ -33,7 +33,7 @@ async def test_weekly_matches_read_only_instant_response():
     with TestClient(app) as client:
         # Time the request to ensure constant-time response (under 200ms)
         start = time.perf_counter()
-        res = client.get(f"/profiles/{target_id}/weekly-matches")
+        res = client.get(f"/profiles/{target_id}/weekly-matches", headers={"X-Test-Profile-Id": target_id})
         elapsed = time.perf_counter() - start
 
         assert res.status_code == 200
@@ -55,12 +55,20 @@ async def test_weekly_matches_read_only_instant_response():
             assert key not in top_match
 
 
-def test_weekly_matches_nonexistent_profile_404():
-    """GET /profiles/invalid-id/weekly-matches returns 404."""
+def test_weekly_matches_unauthorized_and_ownership_gates():
+    """GET /profiles/id/weekly-matches enforces 401 without auth and 403 on ID mismatch."""
     with TestClient(app) as client:
-        res = client.get("/profiles/non-existent-profile-id/weekly-matches")
-        assert res.status_code == 404
-        assert "not found" in res.json()["detail"].lower()
+        # 1. Unauthenticated -> 401
+        res_unauth = client.get("/profiles/non-existent-profile-id/weekly-matches")
+        assert res_unauth.status_code == 401
+
+        # 2. Authenticated as syn-01-aarav but requesting another profile -> 403
+        res_forbidden = client.get(
+            "/profiles/other-profile-id/weekly-matches",
+            headers={"X-Test-Profile-Id": "syn-01-aarav"},
+        )
+        assert res_forbidden.status_code == 403
+
 
 
 @pytest.mark.asyncio
@@ -105,7 +113,7 @@ async def test_weekly_matches_interest_status_staged_disclosure():
 
     with TestClient(app) as client:
         # P1 sees interest_status="pending", is_mutual=False, mutual_matches_count=0
-        r1 = client.get(f"/profiles/{p1}/weekly-matches")
+        r1 = client.get(f"/profiles/{p1}/weekly-matches", headers={"X-Test-Profile-Id": p1})
         assert r1.status_code == 200
         d1 = r1.json()
         assert d1["mutual_matches_count"] == 0
@@ -113,9 +121,10 @@ async def test_weekly_matches_interest_status_staged_disclosure():
         assert d1["matches"][0]["is_mutual"] is False
 
         # P2 sees interest_status="none", is_mutual=False, mutual_matches_count=0 (P1's pending is hidden!)
-        r2 = client.get(f"/profiles/{p2}/weekly-matches")
+        r2 = client.get(f"/profiles/{p2}/weekly-matches", headers={"X-Test-Profile-Id": p2})
         assert r2.status_code == 200
         d2 = r2.json()
         assert d2["mutual_matches_count"] == 0
         assert d2["matches"][0]["interest_status"] == "none"
         assert d2["matches"][0]["is_mutual"] is False
+

@@ -136,7 +136,7 @@ def test_following_privacy_no_usernames_leaked_in_match_apis(registered_profile_
             assert secret_name not in cand_text, f"Privacy violation: raw username '{secret_name}' leaked in candidate response!"
 
         # 3. Test GET /profiles/{id}/weekly-matches
-        res_weekly = client.get(f"/profiles/{p_a_id}/weekly-matches")
+        res_weekly = client.get(f"/profiles/{p_a_id}/weekly-matches", headers={"X-Test-Profile-Id": p_a_id})
         assert res_weekly.status_code == 200
         weekly_text = res_weekly.text
         for secret_name in secret_usernames:

@@ -1,0 +1,108 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:koota-match-engine-backend-sbom",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-18T00:22:38.841826+00:00",
+    "component": {
+      "type": "application",
+      "name": "koota-match-engine-backend",
+      "version": "1.0.0",
+      "description": "FastAPI 42-Koota Match Engine Backend"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "fastapi>=0.110.0",
+      "version": "latest",
+      "purl": "pkg:pypi/fastapi>=0.110.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn[standard]>=0.28.0",
+      "version": "latest",
+      "purl": "pkg:pypi/uvicorn[standard]>=0.28.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "pydantic>=2.6.0",
+      "version": "latest",
+      "purl": "pkg:pypi/pydantic>=2.6.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "pydantic-settings>=2.2.0",
+      "version": "latest",
+      "purl": "pkg:pypi/pydantic-settings>=2.2.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "sqlalchemy>=2.0.28",
+      "version": "latest",
+      "purl": "pkg:pypi/sqlalchemy>=2.0.28@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "asyncpg>=0.29.0",
+      "version": "latest",
+      "purl": "pkg:pypi/asyncpg>=0.29.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "aiosqlite>=0.20.0",
+      "version": "latest",
+      "purl": "pkg:pypi/aiosqlite>=0.20.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "httpx>=0.27.0",
+      "version": "latest",
+      "purl": "pkg:pypi/httpx>=0.27.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "numpy>=1.26.4",
+      "version": "latest",
+      "purl": "pkg:pypi/numpy>=1.26.4@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "python-dotenv>=1.0.1",
+      "version": "latest",
+      "purl": "pkg:pypi/python-dotenv>=1.0.1@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "pytest>=8.1.0",
+      "version": "latest",
+      "purl": "pkg:pypi/pytest>=8.1.0@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "pytest-asyncio>=0.23.5",
+      "version": "latest",
+      "purl": "pkg:pypi/pytest-asyncio>=0.23.5@latest",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "huggingface_hub>=0.20.0",
+      "version": "latest",
+      "purl": "pkg:pypi/huggingface_hub>=0.20.0@latest",
+      "scope": "required"
+    }
+  ]
+}

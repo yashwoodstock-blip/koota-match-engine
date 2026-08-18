@@ -1,0 +1,234 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:koota-match-mobile-sbom",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-18T00:22:38.842827+00:00",
+    "component": {
+      "type": "application",
+      "name": "koota-match-mobile",
+      "version": "1.0.0",
+      "description": "React Native Expo Client for Koota Match Engine"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "@react-native-async-storage/async-storage",
+      "version": "2.1.2",
+      "purl": "pkg:npm/@react-native-async-storage/async-storage@2.1.2",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "@react-navigation/native",
+      "version": "7.0.14",
+      "purl": "pkg:npm/@react-navigation/native@7.0.14",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "@react-navigation/native-stack",
+      "version": "7.2.0",
+      "purl": "pkg:npm/@react-navigation/native-stack@7.2.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "@supabase/supabase-js",
+      "version": "2.49.1",
+      "purl": "pkg:npm/@supabase/supabase-js@2.49.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo",
+      "version": "52.0.37",
+      "purl": "pkg:npm/expo@52.0.37",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-constants",
+      "version": "17.0.7",
+      "purl": "pkg:npm/expo-constants@17.0.7",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-haptics",
+      "version": "14.0.1",
+      "purl": "pkg:npm/expo-haptics@14.0.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-linking",
+      "version": "7.0.5",
+      "purl": "pkg:npm/expo-linking@7.0.5",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-secure-store",
+      "version": "14.0.1",
+      "purl": "pkg:npm/expo-secure-store@14.0.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-status-bar",
+      "version": "2.0.1",
+      "purl": "pkg:npm/expo-status-bar@2.0.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "expo-web-browser",
+      "version": "14.0.2",
+      "purl": "pkg:npm/expo-web-browser@14.0.2",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.3.1",
+      "purl": "pkg:npm/react@18.3.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "react-native",
+      "version": "0.76.7",
+      "purl": "pkg:npm/react-native@0.76.7",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "react-native-safe-area-context",
+      "version": "4.12.0",
+      "purl": "pkg:npm/react-native-safe-area-context@4.12.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "react-native-screens",
+      "version": "4.4.0",
+      "purl": "pkg:npm/react-native-screens@4.4.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "@babel/core",
+      "version": "7.25.2",
+      "purl": "pkg:npm/@babel/core@7.25.2",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@babel/preset-env",
+      "version": "7.25.4",
+      "purl": "pkg:npm/@babel/preset-env@7.25.4",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@babel/preset-react",
+      "version": "7.24.7",
+      "purl": "pkg:npm/@babel/preset-react@7.24.7",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@babel/preset-typescript",
+      "version": "7.24.7",
+      "purl": "pkg:npm/@babel/preset-typescript@7.24.7",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@testing-library/jest-native",
+      "version": "5.4.3",
+      "purl": "pkg:npm/@testing-library/jest-native@5.4.3",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@testing-library/react-hooks",
+      "version": "8.0.1",
+      "purl": "pkg:npm/@testing-library/react-hooks@8.0.1",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@testing-library/react-native",
+      "version": "13.0.1",
+      "purl": "pkg:npm/@testing-library/react-native@13.0.1",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@types/jest",
+      "version": "29.5.14",
+      "purl": "pkg:npm/@types/jest@29.5.14",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@types/react",
+      "version": "18.3.12",
+      "purl": "pkg:npm/@types/react@18.3.12",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "@types/react-native",
+      "version": "0.73.0",
+      "purl": "pkg:npm/@types/react-native@0.73.0",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "babel-jest",
+      "version": "29.7.0",
+      "purl": "pkg:npm/babel-jest@29.7.0",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "jest",
+      "version": "29.7.0",
+      "purl": "pkg:npm/jest@29.7.0",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "jest-expo",
+      "version": "57.0.4",
+      "purl": "pkg:npm/jest-expo@57.0.4",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "react-test-renderer",
+      "version": "18.3.1",
+      "purl": "pkg:npm/react-test-renderer@18.3.1",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "ts-jest",
+      "version": "29.2.5",
+      "purl": "pkg:npm/ts-jest@29.2.5",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.3.3",
+      "purl": "pkg:npm/typescript@5.3.3",
+      "scope": "optional"
+    }
+  ]
+}

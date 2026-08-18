@@ -19,27 +19,9 @@ from app.scoring.semantic import score_all_subjective_kootas
 from app.scoring.llm_judge import evaluate_all_top_kootas_llm_judge
 from app.scoring.aggregate import aggregate_scores, AggregateMatchResult
 from app.scoring.tiers import classify_tier
+from app.matching.match_pipeline_service import load_kootas_metadata
 
 router = APIRouter(prefix="/match", tags=["Matching"])
-
-
-async def load_kootas_metadata(db: AsyncSession) -> Dict[int, Dict[str, Any]]:
-    """Load metadata for all 42 Kootas into a fast lookup dict."""
-    stmt = select(Koota)
-    res = await db.execute(stmt)
-    kootas = res.scalars().all()
-    return {
-        k.koota_id: {
-            "weight": k.weight,
-            "name": k.name,
-            "pillar": k.pillar,
-            "question_type": k.question_type,
-            "is_hard_filter": k.is_hard_filter,
-            "subjective_questions": k.subjective_questions,
-            "objective_questions": k.objective_questions,
-        }
-        for k in kootas
-    }
 
 
 @router.post("/{profile_a_id}/{profile_b_id}", response_model=MatchResponse)
