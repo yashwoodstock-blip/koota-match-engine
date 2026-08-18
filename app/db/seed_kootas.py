@@ -35,6 +35,10 @@ async def seed_kootas(json_path: Path = None) -> int:
                 existing.weight = item["weight"]
                 existing.question_type = item["question_type"]
                 existing.is_hard_filter = item["is_hard_filter"]
+                existing.aggregation_type = item.get("aggregation_type", "compensatory")
+                existing.tau_low = item.get("tau_low")
+                existing.tau_high = item.get("tau_high")
+                existing.floor = item.get("floor")
                 existing.objective_questions = item["objective_questions"]
                 existing.subjective_questions = item["subjective_questions"]
             else:
@@ -45,6 +49,10 @@ async def seed_kootas(json_path: Path = None) -> int:
                     weight=item["weight"],
                     question_type=item["question_type"],
                     is_hard_filter=item["is_hard_filter"],
+                    aggregation_type=item.get("aggregation_type", "compensatory"),
+                    tau_low=item.get("tau_low"),
+                    tau_high=item.get("tau_high"),
+                    floor=item.get("floor"),
                     objective_questions=item["objective_questions"],
                     subjective_questions=item["subjective_questions"],
                 )

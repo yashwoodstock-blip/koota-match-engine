@@ -32,13 +32,17 @@ class Koota(Base):
     weight = Column(Integer, nullable=False)
     question_type = Column(String(50), nullable=False)  # mixed, objective_only, subjective_only
     is_hard_filter = Column(Boolean, default=False, nullable=False)
+    aggregation_type = Column(String(50), default="compensatory", nullable=False)  # compensatory, non_compensatory
+    tau_low = Column(Float, nullable=True)
+    tau_high = Column(Float, nullable=True)
+    floor = Column(Float, nullable=True)
     objective_questions = Column(JSON, default=list, nullable=False)
     subjective_questions = Column(JSON, default=list, nullable=False)
 
     answers = relationship("Answer", back_populates="koota", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
-        return f"<Koota id={self.koota_id} name='{self.name}' weight={self.weight}>"
+        return f"<Koota id={self.koota_id} name='{self.name}' weight={self.weight} agg={self.aggregation_type}>"
 
 
 class Profile(Base):

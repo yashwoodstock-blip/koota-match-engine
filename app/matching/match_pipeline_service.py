@@ -18,6 +18,10 @@ async def load_kootas_metadata(db: AsyncSession) -> Dict[int, Dict[str, Any]]:
             "pillar": k.pillar,
             "question_type": k.question_type,
             "is_hard_filter": k.is_hard_filter,
+            "aggregation_type": getattr(k, "aggregation_type", "compensatory"),
+            "tau_low": getattr(k, "tau_low", None),
+            "tau_high": getattr(k, "tau_high", None),
+            "floor": getattr(k, "floor", None),
             "subjective_questions": k.subjective_questions,
             "objective_questions": k.objective_questions,
         }

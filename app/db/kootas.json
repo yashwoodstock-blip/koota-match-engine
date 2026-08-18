@@ -1,7 +1,7 @@
 [
   {
     "koota_id": 1,
-    "pillar": "PILLAR A — Knowing Each Other (Love Maps)",
+    "pillar": "PILLAR A \u2014 Knowing Each Other (Love Maps)",
     "name": "Personal History & Formative Experiences",
     "weight": 4,
     "question_type": "mixed",
@@ -13,11 +13,15 @@
     "subjective_questions": [
       "What's a childhood experience that still shapes how you see relationships today?",
       "What's one value your family passed down that you don't fully agree with anymore?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 2,
-    "pillar": "PILLAR A — Knowing Each Other (Love Maps)",
+    "pillar": "PILLAR A \u2014 Knowing Each Other (Love Maps)",
     "name": "Daily Life Rhythm & Preferences",
     "weight": 3,
     "question_type": "mixed",
@@ -27,13 +31,17 @@
       "Preferred weekend structure (family visits / rest / socializing / religious activities)."
     ],
     "subjective_questions": [
-      "Describe an ordinary Tuesday in the life you actually want — not a vacation, an ordinary day.",
+      "Describe an ordinary Tuesday in the life you actually want \u2014 not a vacation, an ordinary day.",
       "What does a fulfilling weekend look like for you, realistically?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 3,
-    "pillar": "PILLAR A — Knowing Each Other (Love Maps)",
+    "pillar": "PILLAR A \u2014 Knowing Each Other (Love Maps)",
     "name": "Fears, Stresses & Coping Triggers",
     "weight": 5,
     "question_type": "mixed",
@@ -45,24 +53,32 @@
     "subjective_questions": [
       "What's something that quietly stresses you that most people wouldn't guess?",
       "What's a fear about marriage itself, not about your partner, that you rarely say out loud?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 4,
-    "pillar": "PILLAR A — Knowing Each Other (Love Maps)",
+    "pillar": "PILLAR A \u2014 Knowing Each Other (Love Maps)",
     "name": "Dreams, Hopes & Personal Aspirations",
     "weight": 6,
     "question_type": "subjective_only",
     "is_hard_filter": false,
     "objective_questions": [],
     "subjective_questions": [
-      "What's a personal dream you have that has nothing to do with marriage or family — just for you?",
+      "What's a personal dream you have that has nothing to do with marriage or family \u2014 just for you?",
       "If money and family expectations were no constraint, what would you actually be doing with your life?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 5,
-    "pillar": "PILLAR B — Fondness & Regard",
+    "pillar": "PILLAR B \u2014 Fondness & Regard",
     "name": "Expression of Appreciation",
     "weight": 4,
     "question_type": "mixed",
@@ -72,26 +88,34 @@
       "Frequency of verbal appreciation expected (Daily / Weekly / Occasionally / Rarely needed)."
     ],
     "subjective_questions": [
-      "Describe the last time someone made you feel truly appreciated — what exactly did they do?",
-      "Describe a time you felt taken for granted — what was missing?"
-    ]
+      "Describe the last time someone made you feel truly appreciated \u2014 what exactly did they do?",
+      "Describe a time you felt taken for granted \u2014 what was missing?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 6,
-    "pillar": "PILLAR B — Fondness & Regard",
+    "pillar": "PILLAR B \u2014 Fondness & Regard",
     "name": "Respect & Admiration Language",
     "weight": 5,
     "question_type": "subjective_only",
     "is_hard_filter": false,
     "objective_questions": [],
     "subjective_questions": [
-      "What's something about a partner you'd want to be able to say out loud, to their face, regularly — what would that actually sound like for you?",
+      "What's something about a partner you'd want to be able to say out loud, to their face, regularly \u2014 what would that actually sound like for you?",
       "What's a quality in your parents' marriage, or another couple you admire, that you hope to have in yours?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 7,
-    "pillar": "PILLAR C — Communication & Connection",
+    "pillar": "PILLAR C \u2014 Communication & Connection",
     "name": "Conflict Style",
     "weight": 9,
     "question_type": "mixed",
@@ -101,13 +125,17 @@
       "Preference for resolving same-day vs. after a cooling-off period."
     ],
     "subjective_questions": [
-      "Describe the last real disagreement you had with someone close to you — not the topic, but exactly how you handled it, start to finish.",
+      "Describe the last real disagreement you had with someone close to you \u2014 not the topic, but exactly how you handled it, start to finish.",
       "How did your parents model disagreement in front of you, and how did that shape you?"
-    ]
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.75,
+    "floor": 0.4
   },
   {
     "koota_id": 8,
-    "pillar": "PILLAR C — Communication & Connection",
+    "pillar": "PILLAR C \u2014 Communication & Connection",
     "name": "Feedback & Criticism Handling",
     "weight": 7,
     "question_type": "mixed",
@@ -117,12 +145,16 @@
       "Comfort receiving feedback in front of family or in-laws (Comfortable / Uncomfortable / Depends)."
     ],
     "subjective_questions": [
-      "How do you tend to react in the moment when someone criticizes you — and how do you wish you reacted?"
-    ]
+      "How do you tend to react in the moment when someone criticizes you \u2014 and how do you wish you reacted?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.75,
+    "floor": 0.45
   },
   {
     "koota_id": 9,
-    "pillar": "PILLAR C — Communication & Connection",
+    "pillar": "PILLAR C \u2014 Communication & Connection",
     "name": "Turning Toward / Responsiveness",
     "weight": 6,
     "question_type": "mixed",
@@ -131,13 +163,17 @@
       "Expected frequency of daily check-ins (multiple times/day, once/day, as needed)."
     ],
     "subjective_questions": [
-      "When your partner is stressed or excited about something small, what do you want them to do — even if you're busy?",
+      "When your partner is stressed or excited about something small, what do you want them to do \u2014 even if you're busy?",
       "What do you want to still be curious about together with your spouse, 20 years from now?"
-    ]
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.75,
+    "floor": 0.45
   },
   {
     "koota_id": 10,
-    "pillar": "PILLAR C — Communication & Connection",
+    "pillar": "PILLAR C \u2014 Communication & Connection",
     "name": "Repair After Conflict",
     "weight": 8,
     "question_type": "mixed",
@@ -146,12 +182,16 @@
       "Typical time needed to cool down after conflict (minutes / a few hours / a day or more)."
     ],
     "subjective_questions": [
-      "After a fight, what actually helps you feel okay again — an apology, time, humor, physical affection, something else?"
-    ]
+      "After a fight, what actually helps you feel okay again \u2014 an apology, time, humor, physical affection, something else?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.75,
+    "floor": 0.4
   },
   {
     "koota_id": 11,
-    "pillar": "PILLAR D — Trust & Commitment",
+    "pillar": "PILLAR D \u2014 Trust & Commitment",
     "name": "Trust Baseline & History",
     "weight": 9,
     "question_type": "mixed",
@@ -163,11 +203,15 @@
     "subjective_questions": [
       "What would break your trust in a way you don't think you could fully rebuild?",
       "What would you need to hear from a partner to trust them with something painful from your past?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 12,
-    "pillar": "PILLAR D — Trust & Commitment",
+    "pillar": "PILLAR D \u2014 Trust & Commitment",
     "name": "Commitment Philosophy",
     "weight": 10,
     "question_type": "mixed",
@@ -177,41 +221,53 @@
       "Openness to couples therapy if things get hard (Open to it / Only as last resort / Not for us)."
     ],
     "subjective_questions": [
-      "What does 'for better or worse' actually mean to you in practice — where's the line, if there is one?"
-    ]
+      "What does 'for better or worse' actually mean to you in practice \u2014 where's the line, if there is one?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 13,
-    "pillar": "PILLAR E — Temperament & Individual Psychology",
+    "pillar": "PILLAR E \u2014 Temperament & Individual Psychology",
     "name": "Temperament & Stress Processing",
     "weight": 7,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
       "Self-described temperament (calm/steady, expressive/emotional, reserved/private, variable).",
-      "Typical response under social/family pressure — criticism from elders, public gatherings (Withdraw / Push back / Deflect with humor / Stay composed)."
+      "Typical response under social/family pressure \u2014 criticism from elders, public gatherings (Withdraw / Push back / Deflect with humor / Stay composed)."
     ],
     "subjective_questions": [
-      "What's something about your temperament that people who know you well would warn a future spouse about — the honest version."
-    ]
+      "What's something about your temperament that people who know you well would warn a future spouse about \u2014 the honest version."
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.7,
+    "floor": 0.45
   },
   {
     "koota_id": 14,
-    "pillar": "PILLAR E — Temperament & Individual Psychology",
+    "pillar": "PILLAR E \u2014 Temperament & Individual Psychology",
     "name": "Emotional Regulation",
     "weight": 6,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Preference when upset — being left alone vs. being comforted."
+      "Preference when upset \u2014 being left alone vs. being comforted."
     ],
     "subjective_questions": [
-      "When you're upset, how long does it typically take you to be ready to talk about it — and what do you need in that window?"
-    ]
+      "When you're upset, how long does it typically take you to be ready to talk about it \u2014 and what do you need in that window?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.7,
+    "floor": 0.45
   },
   {
     "koota_id": 15,
-    "pillar": "PILLAR E — Temperament & Individual Psychology",
+    "pillar": "PILLAR E \u2014 Temperament & Individual Psychology",
     "name": "Personal Boundaries & Autonomy Needs",
     "weight": 5,
     "question_type": "mixed",
@@ -221,12 +277,16 @@
       "Comfort with partner taking solo trips or vacations without you (Comfortable / Occasional / Rare / Not comfortable)."
     ],
     "subjective_questions": [
-      "What does personal space and independence look like for you inside a marriage — hobbies, friendships, time alone?"
-    ]
+      "What does personal space and independence look like for you inside a marriage \u2014 hobbies, friendships, time alone?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.7,
+    "floor": 0.5
   },
   {
     "koota_id": 16,
-    "pillar": "PILLAR E — Temperament & Individual Psychology",
+    "pillar": "PILLAR E \u2014 Temperament & Individual Psychology",
     "name": "Comfort with Vulnerability",
     "weight": 6,
     "question_type": "subjective_only",
@@ -234,12 +294,16 @@
     "objective_questions": [],
     "subjective_questions": [
       "How easily do you show a partner when you're struggling, versus needing to appear fine?",
-      "Who was the first person you ever told something you were ashamed of — what made that possible?"
-    ]
+      "Who was the first person you ever told something you were ashamed of \u2014 what made that possible?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.7,
+    "floor": 0.5
   },
   {
     "koota_id": 17,
-    "pillar": "PILLAR F — Family of Origin & Extended Family (India-critical)",
+    "pillar": "PILLAR F \u2014 Family of Origin & Extended Family (India-critical)",
     "name": "Family of Origin Dynamics",
     "weight": 8,
     "question_type": "mixed",
@@ -248,12 +312,16 @@
       "Was your household hierarchical (elders decide) or egalitarian growing up?"
     ],
     "subjective_questions": [
-      "How were disagreements handled in your parents' marriage — and how much of that do you want to repeat or avoid?"
-    ]
+      "How were disagreements handled in your parents' marriage \u2014 and how much of that do you want to repeat or avoid?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 18,
-    "pillar": "PILLAR F — Family of Origin & Extended Family (India-critical)",
+    "pillar": "PILLAR F \u2014 Family of Origin & Extended Family (India-critical)",
     "name": "In-Law Relationship Expectations",
     "weight": 14,
     "question_type": "mixed",
@@ -264,12 +332,16 @@
     ],
     "subjective_questions": [
       "How much say should parents/in-laws have in decisions after marriage? Give a specific example where you'd want their input, and one where you wouldn't. / If your spouse and your parent were in conflict over something involving you, how do you think you'd actually handle it?",
-      "Describe an in-law conflict you've witnessed in a friend's or relative's marriage — what would you do differently?"
-    ]
+      "Describe an in-law conflict you've witnessed in a friend's or relative's marriage \u2014 what would you do differently?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 19,
-    "pillar": "PILLAR F — Family of Origin & Extended Family (India-critical)",
+    "pillar": "PILLAR F \u2014 Family of Origin & Extended Family (India-critical)",
     "name": "Parental Involvement in Major Decisions",
     "weight": 10,
     "question_type": "mixed",
@@ -279,11 +351,15 @@
     ],
     "subjective_questions": [
       "Describe a decision you'd want your parents involved in after marriage, and one you'd consider entirely off-limits to them."
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 20,
-    "pillar": "PILLAR F — Family of Origin & Extended Family (India-critical)",
+    "pillar": "PILLAR F \u2014 Family of Origin & Extended Family (India-critical)",
     "name": "Sibling & Extended Kin Obligations",
     "weight": 6,
     "question_type": "mixed",
@@ -293,27 +369,35 @@
       "Do you expect to financially support siblings' education or marriage costs in the future?"
     ],
     "subjective_questions": [
-      "Are there extended-family obligations — financial or caregiving — that a partner should know about upfront?"
-    ]
+      "Are there extended-family obligations \u2014 financial or caregiving \u2014 that a partner should know about upfront?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 21,
-    "pillar": "PILLAR G — Household Structure & Roles",
+    "pillar": "PILLAR G \u2014 Household Structure & Roles",
     "name": "Living Arrangement Preference",
     "weight": 11,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
       "Joint family / nuclear same city / nuclear different city / flexible.",
-      "If joint family, whose parents — yours, partner's, either, neither?"
+      "If joint family, whose parents \u2014 yours, partner's, either, neither?"
     ],
     "subjective_questions": [
-      "Describe the household you imagine living in 5 years from now — who's in it, who decides what, how money and space are shared."
-    ]
+      "Describe the household you imagine living in 5 years from now \u2014 who's in it, who decides what, how money and space are shared."
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 22,
-    "pillar": "PILLAR G — Household Structure & Roles",
+    "pillar": "PILLAR G \u2014 Household Structure & Roles",
     "name": "Gender Roles & Division of Labor",
     "weight": 12,
     "question_type": "mixed",
@@ -324,30 +408,38 @@
       "Who made major decisions in your family growing up (mother / father / joint / other)?"
     ],
     "subjective_questions": [
-      "What does an equal partnership look like to you, practically — who does what, and why? / What would you want a partner to never expect of you, and what would you happily take on unasked?",
+      "What does an equal partnership look like to you, practically \u2014 who does what, and why? / What would you want a partner to never expect of you, and what would you happily take on unasked?",
       "Describe a decision you'd want full control over, and one you'd want to make only together, no matter what."
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 23,
-    "pillar": "PILLAR G — Household Structure & Roles",
+    "pillar": "PILLAR G \u2014 Household Structure & Roles",
     "name": "Post-Marriage Career Continuity & Autonomy",
     "weight": 13,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Expectation if working at time of marriage (continue with full support / continue but will need to negotiate / expected to stop / open, decide together) — asked of and about both parties.",
+      "Expectation if working at time of marriage (continue with full support / continue but will need to negotiate / expected to stop / open, decide together) \u2014 asked of and about both parties.",
       "Would you relocate cities for your partner's career, and would you expect them to relocate for yours?",
-      "Centrality of professional ambition to identity (1–5 scale)."
+      "Centrality of professional ambition to identity (1\u20135 scale)."
     ],
     "subjective_questions": [
-      "If your career and your partner's family's expectations came into direct conflict, how do you think that would actually get resolved in your household — not how it should, how it would.",
-      "If your partner's career required real sacrifice from you for a few years, how would you actually think about that — not the ideal answer, the honest one?"
-    ]
+      "If your career and your partner's family's expectations came into direct conflict, how do you think that would actually get resolved in your household \u2014 not how it should, how it would.",
+      "If your partner's career required real sacrifice from you for a few years, how would you actually think about that \u2014 not the ideal answer, the honest one?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 24,
-    "pillar": "PILLAR G — Household Structure & Roles",
+    "pillar": "PILLAR G \u2014 Household Structure & Roles",
     "name": "Elder Care Responsibility",
     "weight": 9,
     "question_type": "mixed",
@@ -357,27 +449,35 @@
       "If elder care requires one partner to pause a career temporarily, whose job takes priority by default?"
     ],
     "subjective_questions": [
-      "How do you picture caring for aging parents — yours or your spouse's — practically, not just in principle?"
-    ]
+      "How do you picture caring for aging parents \u2014 yours or your spouse's \u2014 practically, not just in principle?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 25,
-    "pillar": "PILLAR H — Money & Practical Life",
+    "pillar": "PILLAR H \u2014 Money & Practical Life",
     "name": "Financial Philosophy",
     "weight": 8,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Saver vs. spender self-rating (1–5).",
+      "Saver vs. spender self-rating (1\u20135).",
       "Do you currently have any debt or loans a partner should know about?"
     ],
     "subjective_questions": [
       "Is money something you save toward a number, or spend toward a life? Explain how you actually think about it."
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 26,
-    "pillar": "PILLAR H — Money & Practical Life",
+    "pillar": "PILLAR H \u2014 Money & Practical Life",
     "name": "Financial Structure & Control",
     "weight": 7,
     "question_type": "objective_only",
@@ -386,65 +486,85 @@
       "Preferred account structure (joint/shared control, joint/one manages, separate, hybrid).",
       "Should both partners have full visibility into each other's individual accounts, even if kept separate?"
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 27,
-    "pillar": "PILLAR H — Money & Practical Life",
+    "pillar": "PILLAR H \u2014 Money & Practical Life",
     "name": "Marriage-Onset Financial Transparency",
     "weight": 7,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Financial expectations around the wedding — gifts, contributions, dowry-adjacent practices a partner should know upfront (Yes, will disclose / No / Prefer to discuss privately) — flagged for private disclosure during matched conversation, never scored publicly."
+      "Financial expectations around the wedding \u2014 gifts, contributions, dowry-adjacent practices a partner should know upfront (Yes, will disclose / No / Prefer to discuss privately) \u2014 flagged for private disclosure during matched conversation, never scored publicly."
     ],
     "subjective_questions": [
-      "What financial expectations, spoken or unspoken, exist in your family around marriage — and how do you personally feel about them?"
-    ]
+      "What financial expectations, spoken or unspoken, exist in your family around marriage \u2014 and how do you personally feel about them?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 28,
-    "pillar": "PILLAR H — Money & Practical Life",
+    "pillar": "PILLAR H \u2014 Money & Practical Life",
     "name": "Major Purchase & Debt Comfort",
     "weight": 6,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Threshold amount above which you'd always consult your partner before spending (e.g. under ₹10k / ₹10k–50k / ₹50k–1L / above ₹1L)."
+      "Threshold amount above which you'd always consult your partner before spending (e.g. under \u20b910k / \u20b910k\u201350k / \u20b950k\u20131L / above \u20b91L)."
     ],
     "subjective_questions": [
       "Describe a financial decision you'd never make without discussing first, and one you'd never need to discuss at all."
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 29,
-    "pillar": "PILLAR I — Intimacy & Affection",
+    "pillar": "PILLAR I \u2014 Intimacy & Affection",
     "name": "Physical & Intimate Compatibility",
     "weight": 6,
     "question_type": "objective_only",
     "is_hard_filter": false,
     "objective_questions": [
-      "Importance of daily physical affection (1–5); comfort discussing intimacy expectations pre-marriage.",
+      "Importance of daily physical affection (1\u20135); comfort discussing intimacy expectations pre-marriage.",
       "Comfort discussing intimacy-adjacent health topics (fertility, STIs) openly before marriage."
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 30,
-    "pillar": "PILLAR I — Intimacy & Affection",
+    "pillar": "PILLAR I \u2014 Intimacy & Affection",
     "name": "Affection Expression Style",
     "weight": 5,
     "question_type": "subjective_only",
     "is_hard_filter": false,
     "objective_questions": [],
     "subjective_questions": [
-      "What does affection look like for you in daily life — not just intimacy, but touch, closeness, attention?",
+      "What does affection look like for you in daily life \u2014 not just intimacy, but touch, closeness, attention?",
       "What's a small daily gesture, not intimacy, that would make you feel loved?"
-    ]
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 31,
-    "pillar": "PILLAR J — Children & Parenting",
+    "pillar": "PILLAR J \u2014 Children & Parenting",
     "name": "Desire for Children & Timing",
     "weight": 10,
     "question_type": "objective_only",
@@ -453,26 +573,34 @@
       "Want children (Yes/No/Undecided/Open to partner's strong preference); rough timeline preference.",
       "If unable to conceive naturally, openness to adoption, IVF, or surrogacy."
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.7,
+    "tau_high": 0.7,
+    "floor": 0.3
   },
   {
     "koota_id": 32,
-    "pillar": "PILLAR J — Children & Parenting",
+    "pillar": "PILLAR J \u2014 Children & Parenting",
     "name": "Parenting Philosophy & Discipline",
     "weight": 9,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
       "Approach (strict/discipline-focused, balanced, permissive, undecided).",
-      "Should children be raised bilingual/multilingual — regional mother tongue plus English?"
+      "Should children be raised bilingual/multilingual \u2014 regional mother tongue plus English?"
     ],
     "subjective_questions": [
-      "What kind of childhood do you want to give your children — describe the household culture, not just 'good values' as a phrase."
-    ]
+      "What kind of childhood do you want to give your children \u2014 describe the household culture, not just 'good values' as a phrase."
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.45,
+    "tau_high": 0.75,
+    "floor": 0.5
   },
   {
     "koota_id": 33,
-    "pillar": "PILLAR J — Children & Parenting",
+    "pillar": "PILLAR J \u2014 Children & Parenting",
     "name": "Education & Upbringing Values",
     "weight": 8,
     "question_type": "mixed",
@@ -481,12 +609,16 @@
       "Comfort with children pursuing non-traditional careers (arts, sports, startups) vs. conventional paths (engineering, medicine, government service)."
     ],
     "subjective_questions": [
-      "How much academic/career pressure do you think is right to put on a child — and where did that view come from?"
-    ]
+      "How much academic/career pressure do you think is right to put on a child \u2014 and where did that view come from?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.45,
+    "tau_high": 0.75,
+    "floor": 0.5
   },
   {
     "koota_id": 34,
-    "pillar": "PILLAR K — Social Life, Community & Habits",
+    "pillar": "PILLAR K \u2014 Social Life, Community & Habits",
     "name": "Friendship Boundaries",
     "weight": 6,
     "question_type": "objective_only",
@@ -495,24 +627,32 @@
       "Comfort with partner's opposite-sex friendships (fully comfortable / comfortable with transparency / prefer minimal / not comfortable).",
       "Comfort with a partner having close opposite-sex friends from before the marriage specifically."
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 35,
-    "pillar": "PILLAR K — Social Life, Community & Habits",
+    "pillar": "PILLAR K \u2014 Social Life, Community & Habits",
     "name": "Social & Community Involvement",
     "weight": 4,
     "question_type": "objective_only",
     "is_hard_filter": false,
     "objective_questions": [
       "Preferred social pace (frequent socializing / occasional / minimal, prefer close circle).",
-      "Importance of maintaining your own independent friend circle post-marriage (1–5)."
+      "Importance of maintaining your own independent friend circle post-marriage (1\u20135)."
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 36,
-    "pillar": "PILLAR K — Social Life, Community & Habits",
+    "pillar": "PILLAR K \u2014 Social Life, Community & Habits",
     "name": "Lifestyle Habits & Health",
     "weight": 7,
     "question_type": "mixed",
@@ -523,53 +663,69 @@
     ],
     "subjective_questions": [
       "How would you feel if your partner's health habits were meaningfully different from yours? Where's your real line, versus what you'd adjust to?"
-    ]
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.5,
+    "tau_high": 0.75,
+    "floor": 0.4
   },
   {
     "koota_id": 37,
-    "pillar": "PILLAR L — Spiritual & Philosophical Orientation",
+    "pillar": "PILLAR L \u2014 Spiritual & Philosophical Orientation",
     "name": "Spiritual Practice Intensity",
     "weight": 6,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Practice centrality (1–5); frequency (Daily/Weekly/Occasional/Festivals only/Rarely).",
+      "Practice centrality (1\u20135); frequency (Daily/Weekly/Occasional/Festivals only/Rarely).",
       "Would you want a partner to join you in religious rituals or festivals even if they're not equally devout?"
     ],
     "subjective_questions": [
-      "Describe what your faith actually looks like day to day — not what you were raised with, but what you currently practice and believe. / If your partner's spiritual intensity were noticeably different from yours, what would that change about daily life together?"
-    ]
+      "Describe what your faith actually looks like day to day \u2014 not what you were raised with, but what you currently practice and believe. / If your partner's spiritual intensity were noticeably different from yours, what would that change about daily life together?"
+    ],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   },
   {
     "koota_id": 38,
-    "pillar": "PILLAR L — Spiritual & Philosophical Orientation",
+    "pillar": "PILLAR L \u2014 Spiritual & Philosophical Orientation",
     "name": "Philosophical Orientation on Meaning",
     "weight": 7,
     "question_type": "subjective_only",
     "is_hard_filter": false,
     "objective_questions": [],
     "subjective_questions": [
-      "Where do you turn, practically, when life feels meaningless or hard — faith, philosophy, people, work, something else?",
-      "Has your relationship with faith changed since childhood — how, and why?"
-    ]
+      "Where do you turn, practically, when life feels meaningless or hard \u2014 faith, philosophy, people, work, something else?",
+      "Has your relationship with faith changed since childhood \u2014 how, and why?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.45,
+    "tau_high": 0.75,
+    "floor": 0.4
   },
   {
     "koota_id": 39,
-    "pillar": "PILLAR M — Shared Meaning & Long-Term Vision",
+    "pillar": "PILLAR M \u2014 Shared Meaning & Long-Term Vision",
     "name": "Shared Rituals & Traditions",
     "weight": 9,
     "question_type": "mixed",
     "is_hard_filter": false,
     "objective_questions": [
-      "Which festivals matter most to you, and how do you expect to celebrate them post-marriage — your family's style, partner's, or blended?"
+      "Which festivals matter most to you, and how do you expect to celebrate them post-marriage \u2014 your family's style, partner's, or blended?"
     ],
     "subjective_questions": [
-      "What family or personal traditions do you want to carry into your own household — and which ones would you deliberately leave behind?"
-    ]
+      "What family or personal traditions do you want to carry into your own household \u2014 and which ones would you deliberately leave behind?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.4,
+    "tau_high": 0.75,
+    "floor": 0.5
   },
   {
     "koota_id": 40,
-    "pillar": "PILLAR M — Shared Meaning & Long-Term Vision",
+    "pillar": "PILLAR M \u2014 Shared Meaning & Long-Term Vision",
     "name": "Long-Term Life Vision",
     "weight": 11,
     "question_type": "mixed",
@@ -578,24 +734,32 @@
       "Openness to living in a different city or abroad, even temporarily."
     ],
     "subjective_questions": [
-      "Where do you see your life in 10 years — city, work, family shape, lifestyle?"
-    ]
+      "Where do you see your life in 10 years \u2014 city, work, family shape, lifestyle?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.45,
+    "tau_high": 0.8,
+    "floor": 0.4
   },
   {
     "koota_id": 41,
-    "pillar": "PILLAR M — Shared Meaning & Long-Term Vision",
+    "pillar": "PILLAR M \u2014 Shared Meaning & Long-Term Vision",
     "name": "Life Purpose & Meaning of Marriage",
     "weight": 15,
     "question_type": "subjective_only",
     "is_hard_filter": false,
     "objective_questions": [],
     "subjective_questions": [
-      "In your own words, what is marriage for? What does it accomplish that living together without it wouldn't? / What would make you consider your marriage a success 30 years from now — even on days it wasn't 'happy'? / What's a life you'd actively refuse to live, even for love?"
-    ]
+      "In your own words, what is marriage for? What does it accomplish that living together without it wouldn't? / What would make you consider your marriage a success 30 years from now \u2014 even on days it wasn't 'happy'? / What's a life you'd actively refuse to live, even for love?"
+    ],
+    "aggregation_type": "non_compensatory",
+    "tau_low": 0.5,
+    "tau_high": 0.8,
+    "floor": 0.3
   },
   {
     "koota_id": 42,
-    "pillar": "PILLAR N — Boundary/Eligibility",
+    "pillar": "PILLAR N \u2014 Boundary/Eligibility",
     "name": "Caste & Community Preference",
     "weight": 3,
     "question_type": "objective_only",
@@ -603,6 +767,10 @@
     "objective_questions": [
       "Do you have a caste/community preference or restriction? (No preference / Same caste preferred / Same caste required / Other)."
     ],
-    "subjective_questions": []
+    "subjective_questions": [],
+    "aggregation_type": "compensatory",
+    "tau_low": null,
+    "tau_high": null,
+    "floor": null
   }
 ]

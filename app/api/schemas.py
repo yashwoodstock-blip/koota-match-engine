@@ -129,6 +129,9 @@ class MatchResponse(BaseModel):
     tier: str  # "not viable" | "compatible with flagged friction points" | "strong match"
     overall_score: Optional[float] = None
     raw_composite_score: Optional[float] = None
+    compensatory_score: Optional[float] = None
+    ceiling_applied: Optional[float] = None
+    capped_by: Optional[Dict[str, Any]] = None
     objective_score: Optional[float] = None
     semantic_score: Optional[float] = None
     tier_ceiling: Optional[str] = None
@@ -148,6 +151,9 @@ class CandidateMatchSummary(BaseModel):
     is_viable: bool
     tier: str
     overall_score: Optional[float] = None
+    compensatory_score: Optional[float] = None
+    ceiling_applied: Optional[float] = None
+    capped_by: Optional[Dict[str, Any]] = None
     alignment_points: List[str] = []
     friction_points: List[str] = []
     disagreement_count: int = 0

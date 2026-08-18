@@ -20,9 +20,9 @@ def test_clean_aggregation_without_divergence():
     }
 
     kootas_meta = {
-        7: {"weight": 9, "name": "Conflict Style", "pillar": "PILLAR C", "question_type": "mixed"},
-        18: {"weight": 14, "name": "In-Law Relationship Expectations", "pillar": "PILLAR F", "question_type": "mixed"},
-        41: {"weight": 15, "name": "Life Purpose & Meaning of Marriage", "pillar": "PILLAR M", "question_type": "subjective_only"},
+        7: {"weight": 9, "name": "Conflict Style", "pillar": "PILLAR C", "question_type": "mixed", "aggregation_type": "non_compensatory", "tau_low": 0.40, "tau_high": 0.75, "floor": 0.40},
+        18: {"weight": 14, "name": "In-Law Relationship Expectations", "pillar": "PILLAR F", "question_type": "mixed", "aggregation_type": "compensatory"},
+        41: {"weight": 15, "name": "Life Purpose & Meaning of Marriage", "pillar": "PILLAR M", "question_type": "subjective_only", "aggregation_type": "non_compensatory", "tau_low": 0.50, "tau_high": 0.80, "floor": 0.30},
     }
 
     result = aggregate_scores(
@@ -37,12 +37,13 @@ def test_clean_aggregation_without_divergence():
     assert result.hard_filter_reason is None
     assert len(result.disagreement_flags) == 0
 
-    # Koota 18 combined = (0.85 + 0.80) / 2 = 0.825
-    # Koota 7 = 0.80
-    # Koota 41 = 0.90
-    # Total weighted: (0.80 * 9 + 0.825 * 14 + 0.90 * 15) / (9 + 14 + 15) = (7.2 + 11.55 + 13.5) / 38 = 32.25 / 38 = ~0.8487
-    expected_score = (0.80 * 9 + 0.825 * 14 + 0.90 * 15) / 38
-    assert result.overall_score == pytest.approx(expected_score, 1e-3)
+    # Compensatory Koota 18 combined = (0.85 + 0.80) / 2 = 0.825
+    # Non-compensatory Koota 7 (0.80 >= 0.75) -> ceiling 1.0
+    # Non-compensatory Koota 41 (0.90 >= 0.80) -> ceiling 1.0
+    assert result.compensatory_score == 0.825
+    assert result.ceiling_applied == 1.0
+    assert result.capped_by is None
+    assert result.overall_score == 0.8250
 
 
 def test_disagreement_flag_on_koota_18_in_laws():

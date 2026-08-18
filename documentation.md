@@ -240,9 +240,30 @@ The Koota Match mobile app is built with **React Native / Expo SDK 52, TypeScrip
 
 ---
 
-## 6. Mathematical Scoring & 5-Stage Funnel Pipeline
+## 6. Mathematical Scoring & Continuous Ceiling Funnel Pipeline
 
-$$\text{Final Aggregate Score} = \sum_{k=1}^{42} \left( \text{Normalized Weight}_k \times S_k \right) \times \prod_{g \in \text{Veto Gates}} \text{Multiplier}_g$$
+The Koota Match Engine explicitly decouples **Compensatory** trade-offs from **Non-Compensatory** weakest-link ceilings:
+
+### 1. Compensatory Scoring ($\mathcal{C}$)
+Compensatory dimensions (Career, Finances, Household Labor, Social Circle, Daily Rhythm) trade off through normalized weighted averaging:
+$$\text{CompScore} = \frac{\sum_{c \in \mathcal{C}} w_c \cdot S_c}{\sum_{c \in \mathcal{C}} w_c}$$
+
+### 2. Continuous Non-Compensatory Weakest-Link Ceiling ($\mathcal{N}$)
+Non-compensatory dimensions (Conflict Architecture, Children/Legacy, Emotional Processing, Shared Meaning/Purpose, and Crisis/Substance dealbreakers) cannot be compensated by high scores in other areas. Each non-compensatory Koota enforces a continuous ceiling function $\text{ceiling}_n(S_n) \in [\text{floor}_n, 1.0]$:
+
+$$\text{ceiling}_n(S_n) = \begin{cases} 
+1.0 & \text{if } S_n \ge \tau_{\text{high}} \\
+\text{floor}_n + (1 - \text{floor}_n) \cdot \frac{S_n - \tau_{\text{low}}}{\tau_{\text{high}} - \tau_{\text{low}}} & \text{if } \tau_{\text{low}} \le S_n < \tau_{\text{high}} \\
+\text{floor}_n & \text{if } S_n < \tau_{\text{low}}
+\end{cases}$$
+
+For degenerate hard cliffs ($\tau_{\text{low}} = \tau_{\text{high}}$, such as Koota 31 Desire for Children):
+$$\text{ceiling}_n(S_n) = \begin{cases} 1.0 & \text{if } S_n \ge \tau_{\text{high}} \\ \text{floor}_n & \text{if } S_n < \tau_{\text{high}} \end{cases}$$
+
+### 3. Final Score Synthesis
+$$\text{FinalScore} = \text{round}\left(\text{CompScore} \times \min_{n \in \mathcal{N}} \text{ceiling}_n(S_n), 4\right)$$
+
+When $\min_{n \in \mathcal{N}} \text{ceiling}_n(S_n) < 1.0$, the match payload explicitly surfaces `capped_by` (Koota ID, name, pillar) and `ceiling_applied` (float) so users and clients understand the exact constraint.
 
 ### Funnel Stage Breakdown
 1. **Stage 1 — SQL Indexed Hard Filters**:
@@ -252,14 +273,14 @@ $$\text{Final Aggregate Score} = \sum_{k=1}^{42} \left( \text{Normalized Weight}
 2. **Stage 2 — Vector ANN Embedding Retrieval (pgvector)**:
    - Cosine similarity over Koota 41 (Life Purpose & Marriage Philosophy) Hugging Face `all-MiniLM-L6-v2` embeddings retrieves Top 50 candidates.
 3. **Stage 3 — NLI Contradiction Screening (BART-MNLI)**:
-   - Evaluates premise/hypothesis contradiction probabilities on subjective answers. Candidates with fundamental contradictions ($> 0.85$ contradiction probability) receive capped scores ($\le 0.45$) and are filtered out.
+   - Evaluates premise/hypothesis contradiction probabilities on subjective answers. Contradiction probability directly feeds $S_n$, which natively scales $\text{ceiling}_n(S_n)$ down to floor ($\le 0.30$) and drops irreconcilable pairs before LLM evaluation.
 4. **Stage 4 — Multi-Provider LLM-as-a-Judge**:
    - Shortlisted Top 10 pairs undergo deep psychological compatibility evaluation via Groq Llama-3.3-70B (with fallback to OpenRouter & Gemini). Generates nuanced alignment points and conversation-starter friction points.
-5. **Stage 5 — Gated Aggregation & Tier Classification**:
-   - Applies weighted pillar math and assigns final tiers:
-     - **Strong Match**: Score $\ge 0.80$, zero critical contradictions.
-     - **Compatible with Flagged Friction Points**: Score $0.65 - 0.79$.
-     - **Not Viable**: Score $< 0.65$ or failed veto gate (never shown in weekly digest).
+5. **Stage 5 — Continuous Ceiling Aggregation & Tier Classification**:
+   - Computes `CompScore`, applies $\min \text{ceiling}_n(S_n)$, tags `capped_by`, and assigns final tiers:
+     - **Strong Match**: Final Score $\ge 0.75$, zero high disagreements, no non-compensatory ceiling drops.
+     - **Compatible with Flagged Friction Points**: Final Score $0.50 - 0.74$.
+     - **Not Viable**: Final Score $< 0.50$ or failed hard filter / critical ceiling ($\le 0.40$). Never shown in weekly digest.
 
 ---
 

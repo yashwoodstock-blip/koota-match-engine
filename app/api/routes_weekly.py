@@ -22,6 +22,8 @@ class WeeklyMatchDTO(BaseModel):
     alignment_points: List[str] = []
     friction_points: List[str] = []
     contradiction_gates: List[Dict[str, Any]] = []
+    capped_by: Optional[Dict[str, Any]] = None
+    ceiling_applied: Optional[float] = None
     social_overlap_score: Optional[float] = 0.0
     shared_account_count: Optional[int] = 0
     interest_status: str = "none"  # "none" | "pending" | "mutual" | "declined"

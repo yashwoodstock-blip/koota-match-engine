@@ -104,6 +104,9 @@ class TierEvaluationResult:
     tier: str  # "not viable" | "compatible with flagged friction points" | "strong match"
     alignment_points: List[str]
     friction_points: List[str]
+    capped_by: Optional[Dict[str, Any]] = None
+    ceiling_applied: Optional[float] = None
+    compensatory_score: Optional[float] = None
 
 
 def classify_tier(
@@ -119,6 +122,9 @@ def classify_tier(
             tier="not viable",
             alignment_points=[],
             friction_points=[aggregate.hard_filter_reason or "Failed essential compatibility requirements."],
+            capped_by=aggregate.capped_by,
+            ceiling_applied=aggregate.ceiling_applied,
+            compensatory_score=aggregate.compensatory_score,
         )
 
     score = aggregate.overall_score
@@ -127,7 +133,6 @@ def classify_tier(
 
     # Gather Alignment Points (top performing kootas)
     alignments: List[str] = []
-    # Sort Kootas by weight * score descending
     sorted_by_alignment = sorted(
         koota_scores.items(),
         key=lambda item: kootas_metadata.get(item[0], {}).get("weight", 1) * item[1],
@@ -140,15 +145,25 @@ def classify_tier(
             if template and template not in alignments:
                 alignments.append(template)
 
-    # Gather Friction Points (low scores or disagreement flags)
+    # Gather Friction Points (low scores, disagreement flags, and non-compensatory ceiling limitations)
     frictions: List[str] = []
 
-    # Add friction from contradiction gates first
+    # Add friction from non-compensatory ceiling caps first
+    if aggregate.capped_by:
+        cap_k_id = aggregate.capped_by.get("koota_id")
+        cap_name = aggregate.capped_by.get("koota_name", "Core Dimension")
+        cap_val = aggregate.capped_by.get("ceiling", 1.0)
+        template = FRICTION_TEMPLATES.get(cap_k_id, f"Significant boundary tension in {cap_name}")
+        cap_str = f"{template} [Non-Compensatory Ceiling: {cap_name} capped at {int(cap_val * 100)}%]"
+        if cap_str not in frictions:
+            frictions.append(cap_str)
+
+    # Add friction from contradiction gates
     for gate in aggregate.contradiction_gates:
         template = FRICTION_TEMPLATES.get(gate["koota_id"], f"Critical conflict in {gate['koota_name']}")
         gate_str = f"{template} [Contradiction Override: {gate['severity'].upper()}]"
         if gate_str not in frictions:
-            frictions.insert(0, gate_str)
+            frictions.append(gate_str)
 
     # Add friction from explicit disagreement flags
     for flag in flags:
@@ -192,4 +207,7 @@ def classify_tier(
         tier=tier,
         alignment_points=alignments[:5],  # Top 5 most prominent alignments
         friction_points=frictions[:5],    # Top 5 most prominent friction areas
+        capped_by=aggregate.capped_by,
+        ceiling_applied=aggregate.ceiling_applied,
+        compensatory_score=aggregate.compensatory_score,
     )

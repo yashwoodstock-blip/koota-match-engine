@@ -28,6 +28,8 @@ def test_kootas_json_structure():
         assert "weight" in k
         assert "question_type" in k
         assert "is_hard_filter" in k
+        assert "aggregation_type" in k
+        assert k["aggregation_type"] in ["compensatory", "non_compensatory"]
         assert "objective_questions" in k
         assert "subjective_questions" in k
         assert 1 <= k["koota_id"] <= 42
@@ -48,17 +50,22 @@ async def test_seed_kootas_database():
         records = result.scalars().all()
         assert len(records) == 42
         
-        # Verify koota 18 (In-Law Relationship Expectations - w14)
+        # Verify koota 18 (In-Law Relationship Expectations - w14, compensatory)
         k18 = next((k for k in records if k.koota_id == 18), None)
         assert k18 is not None
         assert k18.weight == 14
+        assert k18.aggregation_type == "compensatory"
         assert len(k18.objective_questions) == 2
         assert len(k18.subjective_questions) == 2
 
-        # Verify koota 41 (Life Purpose & Meaning of Marriage - w15)
+        # Verify koota 41 (Life Purpose & Meaning of Marriage - w15, non_compensatory)
         k41 = next((k for k in records if k.koota_id == 41), None)
         assert k41 is not None
         assert k41.weight == 15
+        assert k41.aggregation_type == "non_compensatory"
+        assert k41.tau_low == 0.50
+        assert k41.tau_high == 0.80
+        assert k41.floor == 0.30
         assert k41.question_type == "subjective_only"
 
         # Verify koota 42 (Caste & Community Preference - is_hard_filter=True)
