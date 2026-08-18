@@ -4,53 +4,54 @@
 
 ## 1. Executive Overview & System Purpose
 
-The **Koota Match Engine** is an enterprise-grade, high-precision psychometric marital matching engine designed specifically for the nuanced sociocultural, psychological, and demographic realities of modern Indian matrimony. 
+The **Koota Match Engine** is an enterprise-grade, high-precision psychometric marital matching system designed specifically for the sociocultural, psychological, and demographic realities of modern Indian matrimony.
 
-Traditional Indian matrimonial systems rely on archaic astrological heuristics (*Ashtakoota* / 36 *Gunas*) or superficial superficial filters (caste, salary, physical height). In contrast, the Koota Match Engine expands compatibility into **42 scientific Kootas grouped across 14 life pillars**. It couples deterministic hard-filter gatekeepers, vector similarity embeddings, Natural Language Inference (NLI) contradiction screens, multi-provider Large Language Model (LLM) judges, and client-side social graph overlap analysis into a precomputed batch funnel—all engineered to operate permanently within a **zero-cost ($0.00/month) cloud architecture**.
+Traditional Indian matrimonial systems rely heavily on archaic astrological heuristics (*Ashtakoota* / 36 *Gunas*) or superficial socio-economic filters (caste, salary brackets, physical height). In contrast, the Koota Match Engine models compatibility across **42 scientific Kootas grouped across 14 life pillars**. It couples deterministic hard-filter gatekeepers, vector similarity embeddings, Natural Language Inference (NLI) contradiction screens, multi-provider Large Language Model (LLM) judges, client-side social graph overlap analysis, and an editorial React Native (Expo) mobile experience—all engineered to operate permanently within a **zero-cost ($0.00/month) cloud architecture**.
 
 ---
 
-## 2. Architecture & Design Overview
+## 2. Full-Stack System Architecture
 
 ```mermaid
 graph TD
-    subgraph Client & Auth Layer
-        UI[Client Application / Web Frontend] -->|1. Submit Invite Code| API_INVITE[/auth/invite/redeem]
-        UI -->|2. Google OAuth Token| API_AUTH[/auth/google/callback]
-        UI -->|3. Client-side Following JSON| API_FOLLOW[/profiles/{id}/following]
+    subgraph Client Application [React Native / Expo SDK 52]
+        UI_INVITE[Invite Code Screen] -->|Validate Single-Use Token| API_INVITE[/auth/invite/redeem]
+        UI_AUTH[Google OAuth Flow] -->|Exchange Auth Token| API_AUTH[/auth/google/callback]
+        UI_ONBOARD[42-Koota Questionnaire] -->|Upsert Objective & Free-Text| API_ANSWERS[/profiles/{id}/answers]
+        UI_WEEKLY[Weekly Matches Screen] -->|Constant-Time Cache Read| API_WEEKLY[/profiles/{id}/weekly-matches]
+        UI_INTEREST[Express / Decline Interest] -->|Atomic Single-Tap| API_INTEREST[/interest]
+        UI_REFRESH[Refresh Matches Button] -->|24h Cooldown Funnel| API_REFRESH[/profiles/{id}/refresh-matches]
+        UI_CODE[Compatibility Codes UI] -->|Generate & Exchange Codes| API_CODES[/profiles/{id}/compatibility-check]
     end
 
-    subgraph Data Ingestion & Profile Assembly
-        API_AUTH --> DB_PROFILE[(Supabase PostgreSQL Profile Table)]
-        UI -->|4. 42-Koota Answers| API_ANSWERS[/profiles/{id}/answers]
+    subgraph Backend API Layer [FastAPI + AsyncSQLAlchemy 2.0]
+        API_AUTH --> DB_PROFILE[(Supabase Postgres Profiles)]
         API_ANSWERS -->|Write-Time Vector Embedding| HF_EMB[HF MiniLM Embedding Model]
-        HF_EMB --> DB_ANSWERS[(Answers Table / Caches)]
+        HF_EMB --> DB_ANSWERS[(Answers & Embedding Tables)]
+        
+        API_WEEKLY --> DB_WEEKLY[(WeeklyMatchList Table)]
+        API_INTEREST -->|Atomic Mutual Flip Service| DB_INTEREST[(Interests Table)]
+        API_CODES --> DB_CODES[(CompatibilityCodes Table)]
     end
 
-    subgraph Weekly Precomputation Funnel [Sunday 00:00 UTC Cron]
-        CRON[GitHub Actions Weekly Match Cron] --> BATCH[Batch Runner / candidates_batch.py]
-        BATCH --> S1[Stage 1: SQL Indexed Hard Filter]
-        S1 -->|Age Gap <= 2 yrs + Religion Match| S2[Stage 2: pgvector / Cosine ANN Retrieval Top 50]
+    subgraph 5-Stage Matching Funnel Pipeline [Batch Runner & On-Demand]
+        CRON[Scheduled Weekly Cron / On-Demand Trigger] --> FUNNEL[Funnel Pipeline Engine]
+        FUNNEL --> S1[Stage 1: SQL Indexed Hard Filter]
+        S1 -->|Age Gap <= 2 yrs + Religion + Caste Req| S2[Stage 2: pgvector / Cosine ANN Retrieval Top 50]
         S2 -->|Koota 41 Life Purpose Embedding| S3[Stage 3: HF BART-MNLI Contradiction Screen Top 10]
         S3 -->|Drop Fundamental Contradictions| S4[Stage 4: Multi-Provider LLM Judge Shortlist Top 10]
         S4 -->|Groq Llama-3.3-70B / OpenRouter / Gemini| S5[Stage 5: Gated Aggregation & Tier Classification]
-        S5 --> DB_WEEKLY[(WeeklyMatchList Table)]
-    end
-
-    subgraph Discovery & Mutual Interaction
-        UI -->|5. Fast Read-Only Lookup| API_WEEKLY[/profiles/{id}/weekly-matches]
-        DB_WEEKLY --> API_WEEKLY
-        UI -->|6. Express / Decline Interest| API_INTEREST[/interest]
-        API_INTEREST -->|Atomic Mutual Flip Guarantee| DB_INTEREST[(Interests Table)]
+        S5 --> DB_WEEKLY
     end
 ```
 
-### Architectural Design Patterns
+### Architectural Design Principles
 1. **Pipelined Filter-and-Refine Funnel**: Employs monotonically narrowing stages (SQL Hard Filter $\rightarrow$ Vector ANN $\rightarrow$ NLI Contradiction Classifier $\rightarrow$ LLM Judge $\rightarrow$ Gated Aggregator) to minimize computational overhead and stay within strict free-tier rate limits.
-2. **Write-Time Heavy, Read-Time Instant (CQRS-lite)**: Expensive transformer embeddings are computed and cached when users submit answers (`/profiles/{id}/answers`). Candidate matches are precomputed on a weekly scheduled cadence. User-facing match queries (`/profiles/{id}/weekly-matches`) execute as $O(1)$ constant-time database lookups with zero live LLM or transformer invocations.
-3. **Multi-Provider Fallback Chain with Circuit Breaking**: The LLM-as-a-Judge subsystem utilizes a primary provider (Groq Llama-3.3-70B) and falls back sequentially to OpenRouter (Nemotron-70B/Gemma-4) and Google Gemini without halting match batch processing.
-4. **Token Bucket Rate Limiting**: Uses a sliding window timestamp tracker (`GroqRateLimiter`) that guarantees execution never exceeds 25 requests per minute, preventing HTTP 429 throttling on free LLM APIs.
-5. **Staged Disclosure & Zero-Knowledge Output Serialization**: Responses never serialize raw free-text answers, demographic indicators (caste, income, exact age), or raw social following lists. Match endpoints expose only numeric scores, curated templated insights, and aggregate Jaccard overlap ratios. Unilateral interest states remain completely hidden until mutuality is achieved.
+2. **Write-Time Heavy, Read-Time Instant (CQRS-lite)**: Expensive transformer embeddings are computed and cached when users submit answers (`POST /profiles/{id}/answers`). Candidate matches are precomputed into `WeeklyMatchList`. User match lookups (`GET /profiles/{id}/weekly-matches`) execute as $O(1)$ constant-time database queries with zero live LLM or transformer invocations.
+3. **Multi-Provider Fallback Chain with Circuit Breaking**: The LLM-as-a-Judge subsystem utilizes Groq Llama-3.3-70B as primary, gracefully falling back sequentially to OpenRouter (Nemotron-70B / Gemma-4) and Google Gemini without halting batch runs.
+4. **Strict Isolation of Informational Overlap**: Social graph overlap ([`app/matching/social_overlap.py`](file:///d:/Vivah/app/matching/social_overlap.py)) is purely informational. It has 0.00 weight on numeric match scores and zero influence over tier ceilings.
+5. **Staged Disclosure & Zero-Knowledge Output Serialization**: Responses never serialize raw free-text answers, sensitive demographic fields (caste, exact income, phone, email), or raw following handles. Unilateral interest states remain completely hidden until mutuality is achieved.
+6. **Robust Client-Side Resilience**: Mobile API client features a 30s `AbortController` timeout and automatic 1-time retry on HTTP 502/503/504 cold starts.
 
 ---
 
@@ -60,23 +61,25 @@ graph TD
 koota-match-engine/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                 # Automated pytest CI runner on every push/PR
+│       ├── ci.yml                 # Full stack CI: Pytest + Jest + TypeScript gates
 │       ├── keepalive.yml          # Free-tier keepalive ping workflow (every 3 days)
 │       └── weekly-match.yml       # Scheduled Sunday cron precomputing weekly matches
 ├── app/
 │   ├── __init__.py                # App package initialization
-│   ├── main.py                    # FastAPI entrypoint, lifespan hooks, and router mounting
+│   ├── main.py                    # FastAPI entrypoint, logging middleware, /health probe
 │   ├── models.py                  # SQLAlchemy 2.0 ORM domain entities and relationships
 │   ├── api/
 │   │   ├── __init__.py            # API package initialization
-│   │   ├── routes_auth.py         # Invite code generation, validation, and Google OAuth endpoints
+│   │   ├── routes_auth.py         # Invite code validation and Google OAuth endpoints
 │   │   ├── routes_following.py    # Opt-in client-extracted social following list endpoints
 │   │   ├── routes_interest.py     # Mutual-interest expression, decline, and status routes
 │   │   ├── routes_match.py        # Direct pair match scoring and candidate ranking endpoints
-│   │   ├── routes_profiles.py     # Profile CRUD, 42-Koota answer submission, and completion status
+│   │   ├── routes_on_demand.py    # On-demand funnel refresh & compatibility code endpoints
+│   │   ├── routes_profiles.py     # Profile CRUD, PATCH demographics, 42-Koota answers upsert
 │   │   ├── routes_weekly.py       # Constant-time read-only weekly matches API
-│   │   └── schemas.py             # Pydantic v2 validation contracts and Data Transfer Objects (DTOs)
+│   │   └── schemas.py             # Pydantic v2 validation contracts and DTO schemas
 │   ├── auth/
+│   │   ├── deps.py                # Profile ownership verification (403 gate) & auth dependencies
 │   │   ├── google_oauth.py        # Supabase Google OAuth verification and profile mapping
 │   │   └── invite.py              # Single-use HMAC-signed invite code lifecycle management
 │   ├── db/
@@ -91,6 +94,7 @@ koota-match-engine/
 │   ├── matching/
 │   │   ├── batch_runner.py        # Batch runner orchestrating full-pool candidate precomputation
 │   │   ├── candidates_batch.py    # Monotonic 5-stage precomputation funnel pipeline
+│   │   ├── match_pipeline_service.py # Shared Koota metadata loading & UTC normalization
 │   │   └── social_overlap.py      # Pure function Jaccard overlap calculator for following lists
 │   └── scoring/
 │       ├── __init__.py            # Scoring package initialization
@@ -98,512 +102,284 @@ koota-match-engine/
 │       ├── llm_judge.py           # Multi-provider LLM-as-a-Judge subjective evaluation engine
 │       ├── nli.py                 # Hugging Face Serverless BART-MNLI contradiction scorer
 │       ├── objective.py           # Hard-filter short-circuit and partial credit matrices
-│       ├── semantic.py            # Sentence transformer embedding caching and cosine similarity
-│       └── tiers.py               # 3-tier classifier and 42 curated domain insight templates
-├── tests/
-│   ├── __init__.py                # Test package initialization
-│   ├── synthetic_profiles.json    # 16 handcrafted synthetic profiles with diverse edge-cases
-│   ├── test_aggregation.py        # Unit tests for weighted composite score calculation
-│   ├── test_api_and_tiers.py      # End-to-end API lifecycle and bonus field invariance tests
-│   ├── test_auth.py               # Single-use invite, expiry, token signing, and 403 gate tests
-│   ├── test_candidates_batch.py   # Funnel narrowing, NLI drops, and 30 RPM limiter tests
-│   ├── test_following_api.py      # Following upload, replacement, deletion, and privacy tests
-│   ├── test_gated_aggregation.py  # Veto overrides on Koota 41 and Top-10 contradiction tests
-│   ├── test_interest_api.py       # Mutual interest confirmation API and staged disclosure tests
-│   ├── test_interest_service.py   # Atomic flip transaction and decline terminal state tests
-│   ├── test_llm_judge.py          # LLM Judge prompt formatting, mock responses, and fallback tests
-│   ├── test_nli_scorer.py         # NLI contradiction and entailment scoring tests
-│   ├── test_objective_scorer.py   # Age gap, religion match, and categorical partial credit tests
-│   ├── test_phase1_scaffolding.py # Scaffold integrity, health check, and question bank tests
-│   ├── test_semantic_scorer.py    # Embedding vector caching and cosine mathematical tests
-│   ├── test_social_overlap.py     # Jaccard calculation ratios and opt-out short-circuit tests
-│   ├── test_synthetic_matching.py # Full integration tests against all 16 synthetic candidate pairs
-│   └── test_weekly_matches_api.py # Read-only weekly matches API and interest status tests
-├── .env.example                   # Environment configuration template
-├── .gitignore                     # Git tracking exclusions
-├── Dockerfile                     # Container deployment definition
-├── requirements.txt               # Pinned production Python dependencies
-└── README.md                      # High-level architecture and quickstart guide
+│       ├── semantic.py            # Cosine semantic similarity over Hugging Face embeddings
+│       └── tiers.py               # 3-tier classification engine with contradiction ceilings
+├── mobile/                        # React Native / Expo SDK 52 TypeScript mobile application
+│   ├── assets/                    # Production editorial icons, adaptive icons, and splash
+│   ├── eas.json                   # EAS build configuration for Android APK and production AAB
+│   ├── package.json               # Mobile dependencies & Jest scripts
+│   ├── tsconfig.json              # TypeScript strict configuration
+│   └── src/
+│       ├── api/
+│       │   ├── authApi.ts         # Authentication & invite verification API client
+│       │   ├── client.ts          # Base Axios client with 30s timeout & cold-start retry
+│       │   ├── interestApi.ts     # Interest expression & status API client
+│       │   ├── onDemandApi.ts     # On-demand refresh & compatibility code API client
+│       │   ├── profileApi.ts      # Profile CRUD, PATCH, & answers upsert API client
+│       │   └── weeklyMatchesApi.ts# Read-only weekly matches API client
+│       ├── components/
+│       │   ├── AlignmentFrictionList.tsx # Editorial alignment & conversation-starter pills
+│       │   ├── DeclineConfirmationModal.tsx # Gentle decline confirmation modal
+│       │   ├── MatchCard.tsx      # Editorial match card (no photos, pure psychometrics)
+│       │   ├── MutualRevealAnimation.tsx # Spring-driven celebration modal on mutual match
+│       │   ├── QuestionnaireProgress.tsx # Elegant typography & spring progress bar
+│       │   └── RefreshMatchesButton.tsx  # Live countdown cooldown button for funnel refresh
+│       ├── context/
+│       │   ├── AuthContext.tsx    # Supabase session management & SecureStore integration
+│       │   └── QuestionnaireContext.tsx # 42-Koota answer state, draft saving, and batching
+│       ├── navigation/
+│       │   └── AppNavigator.tsx   # React Navigation stack & tab navigators
+│       ├── reducers/
+│       │   └── interestReducer.ts # Optimistic single-tap state reducer for match actions
+│       ├── screens/
+│       │   ├── CompatibilityCodeScreen.tsx # Generate, share, and redeem compatibility codes
+│       │   ├── EditProfileScreen.tsx       # Demographic & questionnaire answers edit screen
+│       │   ├── HomeScreen.tsx              # Editorial dashboard & match digest
+│       │   ├── InviteCodeScreen.tsx        # Single-use invite code gate screen
+│       │   ├── LoginScreen.tsx             # Editorial Google OAuth entry point
+│       │   ├── ObjectiveQuestionnaireScreen.tsx # Objective multiple-choice questions
+│       │   ├── ProfileSetupScreen.tsx      # Basic demographic profile registration
+│       │   ├── SubjectiveQuestionnaireScreen.tsx# Free-text reflective answer screen
+│       │   └── WeeklyMatchesScreen.tsx     # Precomputed matches list with on-demand refresh
+│       ├── styles/
+│       │   └── theme.ts           # Warm ivory, terracotta, champagne editorial design tokens
+│       └── utils/
+│           ├── answerPersistence.ts # Async storage draft persistence for questionnaire
+│           └── kootaDefinitions.ts  # Typed definitions of all 42 Kootas and 14 pillars
+├── sbom-backend.json              # CycloneDX SBOM for Python backend dependencies
+├── sbom-mobile.json               # CycloneDX SBOM for npm mobile dependencies
+├── scripts/
+│   ├── generate_app_assets.py     # Pillow-based editorial icon and splash generator
+│   └── generate_sbom.py           # CycloneDX SBOM generator script
+└── tests/                         # Pytest test suite (89 tests)
+    ├── test_aggregation.py
+    ├── test_api_and_tiers.py
+    ├── test_auth.py
+    ├── test_candidates_batch.py
+    ├── test_compatibility_codes_privacy.py
+    ├── test_following_api.py
+    ├── test_gated_aggregation.py
+    ├── test_hard_filter_field_consistency.py
+    ├── test_interest_api.py
+    ├── test_interest_service.py
+    ├── test_interest_staged_disclosure_e2e.py
+    ├── test_llm_judge.py
+    ├── test_nli_scorer.py
+    ├── test_objective_scorer.py
+    ├── test_on_demand_refresh_and_compatibility.py
+    ├── test_phase1_scaffolding.py
+    ├── test_profile_answers_upsert_and_patch.py
+    ├── test_semantic_scorer.py
+    ├── test_social_overlap.py
+    ├── test_synthetic_matching.py
+    └── test_weekly_matches_api.py
 ```
 
 ---
 
-## 4. Detailed File-by-File Technical Breakdown
+## 4. Complete API Specification
 
-### 4.1. Core Application & Database (`app/`)
+### Authentication & Invite Routes (`/auth`)
+- `POST /auth/invite/redeem`: Validate and claim single-use invite code. Returns HMAC-signed onboarding token.
+- `POST /auth/google/callback`: Verify Supabase Google OAuth access token, retrieve email and sub, create or return Profile.
+- `POST /auth/invite/generate`: Admin endpoint to mint signed single-use invite codes with expiration timestamps.
 
-#### [`app/main.py`](file:///d:/Vivah/app/main.py)
-- **Purpose**: Application bootstrap, lifespan management, CORS configuration, and HTTP router assembly.
-- **Key Functions**:
-  - `lifespan(app: FastAPI)`: Asynchronous context manager executed during FastAPI startup/shutdown. Resiliently invokes `init_db()` and `seed_kootas()` inside a guarded try/except block to ensure zero boot timeouts during database cold-starts.
-  - `health_check()`: GET `/health` endpoint returning `{"status": "healthy", "service": "koota-match-engine", "version": "1.0.0"}` for Render and GitHub Actions keepalive monitors.
-  - `root()`: GET `/` informational endpoint with service name and docs link.
-- **Routers Mounted**: `auth_router`, `profiles_router`, `following_router`, `interest_router`, `match_router`, `weekly_router`.
+### Profile & Answers Routes (`/profiles`)
+- `POST /profiles`: Create initial demographic profile (Name, Age, Gender, Religion, Caste, Caste Preference, City).
+- `GET /profiles/{id}`: Retrieve profile demographics and onboarding status (Ownership verified).
+- `PATCH /profiles/{id}`: Partial update of demographics. If `religion`, `caste_preference`, or `caste` change, returns `hard_filter_changed: true` and immediately invalidates `WeeklyMatchList` caches.
+- `DELETE /profiles/{id}`: Soft or hard delete of profile, answers, and matches.
+- `POST /profiles/{id}/answers`: Explicit atomic **UPSERT** of objective and subjective 42-Koota answers. Automatically triggers background write-time MiniLM embedding generation.
+- `GET /profiles/{id}/answers`: Retrieve all submitted answers for the caller.
+- `GET /profiles/{id}/completion`: Returns percentage completion across all 14 pillars and 42 Kootas.
 
-#### [`app/models.py`](file:///d:/Vivah/app/models.py)
-- **Purpose**: Declarative SQLAlchemy 2.0 ORM domain models mapping database entities.
-- **Entities**:
-  - `utc_now() -> datetime`: Helper returning timezone-aware UTC timestamp.
-  - `Koota(Base)`: Table `kootas`. Primary key `koota_id: int`. Columns: `name: str`, `pillar: str`, `weight: int`, `is_hard_filter: bool`, `objective_questions: JSON`, `subjective_questions: JSON`.
-  - `Profile(Base)`: Table `profiles`. Primary key `id: str(64)`. Columns: `name: str`, `age: int`, `gender: str`, `religion: str`, `caste: str`, `caste_preference: str`, `city: str`, `is_active: bool`, `created_at: datetime`. Relationships: `answers`, `weekly_matches`, `following_list`.
-  - `Answer(Base)`: Table `answers`. Primary key `id: int`. Columns: `profile_id: str(64)`, `koota_id: int`, `question_index: int`, `question_type: str`, `raw_value: Text`, `embedding: JSON` (384-dimensional float vector), `created_at: datetime`. Unique constraint on `(profile_id, koota_id, question_index, question_type)`.
-  - `MatchResult(Base)`: Table `match_results`. Primary key `id: int`. Columns: `profile_a_id: str(64)`, `profile_b_id: str(64)`, `is_viable: bool`, `hard_filter_reason: str`, `overall_score: float`, `tier: str`, `objective_score: float`, `semantic_score: float`, `disagreement_flags: JSON`, `alignment_points: JSON`, `friction_points: JSON`, `social_overlap_score: float`, `shared_account_count: int`, `created_at: datetime`.
-  - `InviteCode(Base)`: Table `invite_codes`. Primary key `id: int`. Columns: `code: str(32)` (unique), `created_by: str(100)`, `used_by: str(255)`, `used_at: datetime`, `expires_at: datetime`, `created_at: datetime`.
-  - `WeeklyMatchList(Base)`: Table `weekly_match_lists`. Primary key `id: int`. Columns: `profile_id: str(64)`, `candidate_id: str(64)`, `score: float`, `tier: str`, `alignment_points: JSON`, `friction_points: JSON`, `contradiction_gates: JSON`, `social_overlap_score: float`, `shared_account_count: int`, `generated_at: datetime`.
-  - `FollowingList(Base)`: Table `following_lists`. Primary key `id: int`. Columns: `profile_id: str(64)` (unique FK), `usernames: JSON`, `opted_in: bool`, `uploaded_at: datetime`.
-  - `Interest(Base)`: Table `interests`. Primary key `id: int`. Columns: `profile_id: str(64)`, `target_profile_id: str(64)`, `status: str(20)` (`"pending"` | `"mutual"` | `"declined"`), `expressed_at: datetime`. Unique constraint `uq_interest_pair` on `(profile_id, target_profile_id)`.
+### Matching & Funnel Routes (`/profiles`, `/match`)
+- `GET /profiles/{id}/weekly-matches`: Read-only constant-time retrieval of Sunday precomputed matches. Returns candidate names, compatibility scores, tier classification, alignment points, friction conversation-starters, and caller-specific interest state. Zero demographics leaked.
+- `POST /profiles/{id}/refresh-matches`: On-demand execution of the 5-stage matching funnel for this profile. Gated by a **strict 24-hour cooldown**. Returns HTTP 429 with `next_eligible_at` and `retry_after_seconds` if called before cooldown expiry. Bounded to $\le 10$ LLM judge calls.
+- `GET /match/{profile_a_id}/{profile_b_id}`: Real-time debug evaluation of a single pair across all 42 Kootas.
+- `GET /match/{id}/candidates`: Developer candidate pool inspection.
 
-#### [`app/db/session.py`](file:///d:/Vivah/app/db/session.py)
-- **Purpose**: Database engine creation, connection pooling, and dependency injection.
-- **Engine Logic**: Parses `DATABASE_URL` environment variable. Automatically converts `postgres://` or `postgresql://` into `postgresql+asyncpg://` for SQLAlchemy async compatibility. Defaults to `sqlite+aiosqlite:///./koota.db` for local development.
-- **Key Functions**:
-  - `get_db() -> AsyncGenerator[AsyncSession, None]`: FastAPI dependency yielding an asynchronous SQLAlchemy session with automated cleanup.
-  - `init_db() -> None`: Asynchronously creates all metadata tables using `conn.run_sync(Base.metadata.create_all)`.
+### Mutual-Consent Compatibility Codes (`/profiles`)
+- `POST /profiles/{id}/compatibility-code`: Generate an unambiguous 6-character alphanumeric code (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`) with 7-day TTL for sharing with an off-platform partner.
+- `POST /profiles/{id}/compatibility-check`: Submit an external partner's compatibility code. Executes a full 42-Koota evaluation and returns the mutual compatibility score and tier. Atomically burns the code (single-use guarantee).
+- `GET /profiles/{id}/compatibility-codes`: List active and burned codes generated by the caller.
 
-#### [`app/db/seed_kootas.py`](file:///d:/Vivah/app/db/seed_kootas.py) & [`app/db/kootas.json`](file:///d:/Vivah/app/db/kootas.json)
-- **Purpose**: Canonical definitions and database seeding for all 42 Kootas across 14 Pillars.
-- **Seeding Logic**: Reads `kootas.json`, upserts each Koota entity, and commits transactions.
+### Mutual Interest Routes (`/interest`)
+- `POST /interest`: Express (`action: "pending"`) or decline (`action: "declined"`) interest in a candidate from `WeeklyMatchList`.
+  - **Atomic Mutual Flip**: If both parties express pending interest, both records atomically transition to `mutual` in a single ACID transaction.
+- `GET /interest/{profile_id}/status`: Staged-disclosure view of caller's outgoing interest states. A candidate's pending interest remains completely invisible until mutual confirmation.
 
-#### [`app/db/seed_synthetic.py`](file:///d:/Vivah/app/db/seed_synthetic.py) & [`tests/synthetic_profiles.json`](file:///d:/Vivah/tests/synthetic_profiles.json)
-- **Purpose**: Seeds 16 realistic, culturally authentic synthetic test profiles covering edge cases:
-  - `syn-01-aarav` & `syn-02-ananya`: Strong egalitarian alignment ($\ge 0.90$).
-  - `syn-03-vikram` & `syn-04-pooja`: Hard-filter caste and age divergence reject.
-  - `syn-05-kabir` & `syn-06-neha`: High objective alignment but acute narrative divergence on Koota 18 (In-Law Deference).
-  - `syn-07-rohan` & `syn-08-ishita`: Acute divergence on Koota 23 (Career Continuity vs Relocation).
-  - `syn-09-tariq` & `syn-10-farida`: Muslim demographic compatibility.
-  - `syn-11-harpreet` & `syn-12-simran`: Sikh joint-family lifestyle compatibility.
+### Social Following Overlap Routes (`/following`)
+- `POST /following/{profile_id}`: Opt-in client-extracted social following list upload (hashed handles).
+- `GET /following/{profile_id}`: Retrieve following summary count.
+- `DELETE /following/{profile_id}`: Revoke and purge all stored following data.
+
+### System & Health Routes (`/`)
+- `GET /health`: Production readiness check. Performs an active `SELECT 1` database query; returns HTTP 200 `{ status: "healthy", database: "healthy" }` or HTTP 503 `{ status: "degraded", database: "unhealthy" }`.
+- `GET /`: Service identification and documentation links.
 
 ---
 
-### 4.2. Authentication & Invitation Subsystem (`app/auth/` & `app/api/routes_auth.py`)
+## 5. Mobile Application & Editorial UX Architecture
 
-#### [`app/auth/invite.py`](file:///d:/Vivah/app/auth/invite.py)
-- **Purpose**: Single-use cryptographic invite code generation, validation, and session token signing.
-- **Key Functions**:
-  - `generate_random_code(length: int = 8) -> str`: Generates unambiguous 8-character uppercase alphanumeric strings excluding easily confused characters (`0, O, 1, I`).
-  - `generate_invite_code(db: AsyncSession, created_by: str = "admin", expires_in_days: int = 30) -> InviteCode`: Persists a unique single-use code.
-  - `validate_invite_code(db: AsyncSession, code: str) -> Tuple[bool, str, Optional[InviteCode]]`: Enforces server-side non-empty, existence, unconsumed (`used_by is None`), and non-expired (`now <= expires_at`) validation rules.
-  - `consume_invite_code(db: AsyncSession, code: str, used_by: str) -> Tuple[bool, str]`: Atomically marks code consumed with `used_by` and `used_at = utc_now()`.
-  - `create_invite_session_token(code: str) -> str`: Generates an HMAC-SHA256 signed session token `f"{code}:{expiry_timestamp}:{signature}"` valid for 24 hours.
-  - `verify_invite_session_token(token: str) -> Tuple[bool, str]`: Verifies HMAC integrity and timestamp freshness.
+The Koota Match mobile app is built with **React Native / Expo SDK 52, TypeScript, and React Navigation**, following an award-winning editorial aesthetic:
 
-#### [`app/auth/google_oauth.py`](file:///d:/Vivah/app/auth/google_oauth.py)
-- **Purpose**: Supabase Auth Google OAuth wiring and JWT validation.
-- **Key Functions**:
-  - `verify_supabase_jwt(access_token: str) -> Optional[Dict[str, Any]]`: Validates Supabase JWT against `SUPABASE_URL/auth/v1/user`.
-  - `get_or_create_google_profile(db: AsyncSession, user_data: Dict[str, Any], invite_code: Optional[str] = None) -> Tuple[Profile, bool]`: Verifies existing profile by email or creates a new Profile tied to verified Google identity.
+### Editorial Visual Design System
+- **Palette**: Warm Ivory (`#FAF7F2`), Terracotta (`#C85A32`), Deep Slate (`#2A2A2A`), Champagne Gold (`#F2EDE4`), Muted Sand (`#E5DFD5`), and Success Pine (`#2D5A43`). Light theme only.
+- **Typography**: Editorial serif titles with clean geometric sans-serif body copy, generous whitespace, confident tracking, and balanced line heights.
+- **Micro-Animations**: Spring-based physics (`Animated.spring` with friction 7, tension 40) across card reveals, progress updates, and mutual match reveal celebrations.
+- **Zero Photo Design**: Eliminates superficial appearance bias; focuses entirely on deep psychometric compatibility and conversation-starter friction points.
 
-#### [`app/api/routes_auth.py`](file:///d:/Vivah/app/api/routes_auth.py)
-- **Endpoints**:
-  - `POST /auth/invite/generate`: Generates single-use invite code (admin).
-  - `POST /auth/invite/redeem`: Validates invite code and returns signed session token.
-  - `POST /auth/google/callback`: Receives Google OAuth access token, verifies session, and returns profile info.
-  - `GET /auth/session`: Validates active session token.
+### Mobile Feature Implementations
+1. **Invite-Gated Authentication**: `InviteCodeScreen` validates single-use HMAC invite tokens before directing users to Google OAuth in `LoginScreen`. Tokens are safely stored in `expo-secure-store`.
+2. **42-Koota Questionnaire Engine**: Fluid questionnaire splitting objective choices and reflective subjective inputs with auto-draft persistence (`answerPersistence.ts`).
+3. **Optimistic Mutual Interest UI**: `interestReducer.ts` handles instant single-tap state updates on `MatchCard`, rolling back gracefully if network requests fail.
+4. **Mutual Match Celebration Modal**: `MutualRevealAnimation.tsx` renders a spring-driven modal celebration when a match flips to mutual status.
+5. **Live Cooldown Refresh Button**: `RefreshMatchesButton.tsx` tracks server-side cooldown expiration with real-time remaining countdown (e.g. `Next refresh in 14h 22m`).
+6. **Edit Profile with Pre-Save Warning**: `EditProfileScreen.tsx` alerts users before saving if their edits will invalidate their existing weekly match digest.
 
 ---
 
-### 4.3. Profile Management & Answer Ingestion (`app/api/routes_profiles.py`)
+## 6. Mathematical Scoring & 5-Stage Funnel Pipeline
 
-#### [`app/api/routes_profiles.py`](file:///d:/Vivah/app/api/routes_profiles.py)
-- **Purpose**: Invite-gated Profile CRUD, answer submission with write-time vector embeddings, and completion verification.
-- **Endpoints**:
-  - `POST /profiles`: Creates profile with Layer-1 demographics. Enforces invite token check (`verify_invite_session_token`); returns `403 Forbidden` if missing or invalid.
-  - `GET /profiles/{profile_id}`: Retrieves profile details, answered Kootas count, and completion state.
-  - `POST /profiles/{profile_id}/answers`: Accepts bulk objective and subjective answers. For subjective responses, computes and caches embeddings in `Answer.embedding` at submission time using `app.scoring.semantic.get_embedding`.
-  - `GET /profiles/{profile_id}/completion`: Validates if distinct answered Koota IDs match the required set of 42 Kootas ($1..42$).
-  - `GET /profiles/{profile_id}/candidates`: Alias route returning ranked candidate matches.
+$$\text{Final Aggregate Score} = \sum_{k=1}^{42} \left( \text{Normalized Weight}_k \times S_k \right) \times \prod_{g \in \text{Veto Gates}} \text{Multiplier}_g$$
 
----
-
-### 4.4. The 42-Koota Scoring Engine (`app/scoring/`)
-
-```mermaid
-graph LR
-    subgraph 42-Koota Engine Scoring Pipeline
-        P1[Profile A & B Answers] --> OBJ[1. objective.py<br/>Hard Filters & Partial Credit]
-        OBJ -->|is_viable = False| EXIT[Immediate Short-Circuit Not Viable]
-        OBJ -->|is_viable = True| SEM[2. semantic.py<br/>Cached Vector Cosine Similarity]
-        SEM --> NLI[3. nli.py<br/>BART-MNLI Contradiction Scorer]
-        NLI --> JUDGE[4. llm_judge.py<br/>Llama-3.3-70B Subjective Judge Top 32 Kootas]
-        JUDGE --> AGG[5. aggregate.py<br/>Gated Aggregation Mathematics]
-        AGG --> TIER[6. tiers.py<br/>3-Tier Classification & Templated Insights]
-    end
-```
-
-#### [`app/scoring/objective.py`](file:///d:/Vivah/app/scoring/objective.py)
-- **Purpose**: Hard-filter gatekeeping and deterministic multiple-choice scoring with categorical partial credit matrices.
-- **Hard Filters Evaluated**:
-  1. **Age Gap**: Max threshold $\le 2$ years default (`abs(age_a - age_b) <= max_age_gap`).
-  2. **Religion**: Strict string equality check (`p1.religion == p2.religion`).
-  3. **Caste Preference**: Validates `same_caste_required` or `same_caste_preferred` rules.
-- **Partial Credit Matrices (`PARTIAL_CREDIT_TABLE`)**: Defines granular partial credit for India-specific Kootas:
-  - **Koota 18 (In-Law Relationship Expectations)**: Daily vs Weekly = 0.70; Weekly vs Occasional = 0.75; Daily vs Minimal = 0.10; Yes vs Flexible = 0.70; Yes vs No = 0.10.
-  - **Koota 21 (Living Arrangement Preference)**: Joint vs Nuclear Same City = 0.50; Joint vs Nuclear Different City = 0.00 (hard divergence); Flexible vs Joint/Nuclear = 0.85.
-  - **Koota 22 (Gender Roles)**, **Koota 23 (Career Continuity)**, **Koota 24 (Elder Care)**, **Koota 26 (Financial Structure)**.
-- **Key Functions**:
-  - `check_hard_filters(p1, p2, max_age_gap=2) -> HardFilterResult`: Evaluates gatekeepers; returns `passed: bool` and `reason: str`.
-  - `score_objective_koota(koota_id, question_index, val1, val2) -> float`: Evaluates exact match (1.0), partial credit table lookup, numeric distance scaling, or fallback (0.0).
-  - `calculate_objective_match(...) -> ObjectiveScoreResult`: Runs `check_hard_filters` first; if failed, immediately short-circuits.
-
-#### [`app/scoring/semantic.py`](file:///d:/Vivah/app/scoring/semantic.py)
-- **Purpose**: Transformer embeddings and cosine similarity scoring for subjective answers.
-- **Embedding Model**: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` via Hugging Face Serverless Inference API.
-- **Key Functions**:
-  - `cosine_similarity(v1: List[float], v2: List[float]) -> float`: Computes vector cosine angle clipped to $[0.0, 1.0]$.
-  - `get_embedding(text: str, cached_embedding: Optional[List[float]]) -> List[float]`: Returns cached vector if present; fetches from Hugging Face only on cache misses.
-  - `score_subjective_koota(ans1: Answer, ans2: Answer) -> float`: Computes similarity using cached vectors.
-
-#### [`app/scoring/nli.py`](file:///d:/Vivah/app/scoring/nli.py)
-- **Purpose**: Zero-shot Natural Language Inference contradiction detection using `facebook/bart-large-mnli`.
-- **Logic**: Evaluates premise and hypothesis bidirectional entailment/contradiction probabilities.
-- **Scoring Formula**:
-  $$\text{NLI Score} = \max\left(0.0, \min\left(1.0, P(\text{entailment}) + 0.5 \times P(\text{neutral}) - 0.5 \times P(\text{contradiction})\right)\right)$$
-- **Contradiction Threshold**: Flagged as contradiction if $P(\text{contradiction}) \ge 0.60$.
-
-#### [`app/scoring/llm_judge.py`](file:///d:/Vivah/app/scoring/llm_judge.py)
-- **Purpose**: Multi-provider LLM-as-a-Judge evaluation scoped strictly to the Top-32 weighted Kootas.
-- **Providers & Models**:
-  1. Primary: **Groq** (`llama-3.3-70b-versatile`, free tier 30 RPM).
-  2. Fallback 1: **OpenRouter** (`nvidia/nemotron-3.5-lightning:free` or `meta-llama/llama-3.3-70b-instruct:free`).
-  3. Fallback 2: **Google Gemini** (`gemini-2.0-flash`, free tier 15 RPM).
-- **Execution Constraints**: Single-turn call, structured JSON output only (`agreement_score: float`, `contradiction: bool`, `reasoning: str`, `key_tensions: List[str]`), no tool calling.
-- **Veto Scoping**: Koota 41 (Existential Purpose of Marriage) carries foundational existential veto authority.
-
-#### [`app/scoring/aggregate.py`](file:///d:/Vivah/app/scoring/aggregate.py)
-- **Purpose**: Non-linear score aggregation, divergence detection, and contradiction veto gating.
-- **Mathematical Rules**:
-  1. **Disagreement Detection (`detect_disagreement_flags`)**: Sharp divergences ($\ge 0.35$) between objective choices and subjective narrative reflections are flagged and surfaced as structured alerts—**never silently averaged away**.
-  2. **Contradiction Gates (`detect_contradiction_gates`)**:
-     - Contradiction on Koota 41 (Life Purpose): Severity = `"critical"`, Penalty Multiplier = $0.50$, Tier Ceiling = `"not viable"`.
-     - Contradiction on other Top-Weighted Kootas: Severity = `"high"`, Penalty Multiplier = $0.80$.
-     - $\ge 2$ Contradictions: Tier Ceiling = `"not viable"`.
-     - Exactly 1 Contradiction: Tier Ceiling = `"compatible with flagged friction points"`.
-  3. **Composite Scoring**:
-     $$\text{Overall Score} = \text{Raw Composite Score} \times \prod \text{Penalty Multipliers}$$
-
-#### [`app/scoring/tiers.py`](file:///d:/Vivah/app/scoring/tiers.py)
-- **Purpose**: 3-tier classification and templated insight generation.
-- **Three Compatibility Tiers**:
-  1. `"strong match"`: Overall Score $\ge 0.78$, zero hard filter failures, zero critical contradiction gates.
-  2. `"compatible with flagged friction points"`: Overall Score $\in [0.55, 0.78)$ or capped by tier ceiling.
-  3. `"not viable"`: Overall Score $< 0.55$, hard filter failure, or critical contradiction ceiling.
-- **Templated Insights**: All alignment and friction points are generated from static curated dictionaries (`ALIGNMENT_TEMPLATES[k_id]` and `FRICTION_TEMPLATES[k_id]`). Zero user free-text is interpolated into outputs.
+### Funnel Stage Breakdown
+1. **Stage 1 — SQL Indexed Hard Filters**:
+   - Age gap: $|\text{Age}_A - \text{Age}_B| \le 2\text{ years}$.
+   - Religion: $\text{Religion}_A == \text{Religion}_B$.
+   - Caste: If either requires same caste, $\text{Caste}_A == \text{Caste}_B$.
+2. **Stage 2 — Vector ANN Embedding Retrieval (pgvector)**:
+   - Cosine similarity over Koota 41 (Life Purpose & Marriage Philosophy) Hugging Face `all-MiniLM-L6-v2` embeddings retrieves Top 50 candidates.
+3. **Stage 3 — NLI Contradiction Screening (BART-MNLI)**:
+   - Evaluates premise/hypothesis contradiction probabilities on subjective answers. Candidates with fundamental contradictions ($> 0.85$ contradiction probability) receive capped scores ($\le 0.45$) and are filtered out.
+4. **Stage 4 — Multi-Provider LLM-as-a-Judge**:
+   - Shortlisted Top 10 pairs undergo deep psychological compatibility evaluation via Groq Llama-3.3-70B (with fallback to OpenRouter & Gemini). Generates nuanced alignment points and conversation-starter friction points.
+5. **Stage 5 — Gated Aggregation & Tier Classification**:
+   - Applies weighted pillar math and assigns final tiers:
+     - **Strong Match**: Score $\ge 0.80$, zero critical contradictions.
+     - **Compatible with Flagged Friction Points**: Score $0.65 - 0.79$.
+     - **Not Viable**: Score $< 0.65$ or failed veto gate (never shown in weekly digest).
 
 ---
 
-### 4.5. Precomputation Funnel & Social Graph Overlap (`app/matching/`)
+## 7. The 42 Kootas Across 14 Life Pillars
 
-#### [`app/matching/candidates_batch.py`](file:///d:/Vivah/app/matching/candidates_batch.py)
-- **Purpose**: Monotonic 5-stage precomputation match funnel run per active profile:
-  1. **Stage 1 (SQL Hard Filter)**: Queries eligible candidates matching age gap $\le 2$ yrs, identical religion, and caste preferences.
-  2. **Stage 2 (Vector ANN Retrieval)**: Computes cosine similarity on Koota 41 Life Purpose embeddings and slices **Top 50**.
-  3. **Stage 3 (NLI Contradiction Screen)**: Screens Top 50 candidates using BART-MNLI on Top-10 weighted Kootas. Drops candidates with Koota 41 or severe contradictions; slices **Top 10 Shortlist**.
-  4. **Stage 4 (LLM Judge Evaluation)**: Executes LLM-as-a-Judge on the Top 10 Shortlist (strictly bounded to $\le 10$ LLM invocations).
-  5. **Stage 5 (Gated Aggregation & Storage)**: Runs `aggregate_scores`, classifies tiers, and commits the **Top 5 matches** into `WeeklyMatchList`.
-
-#### [`app/matching/batch_runner.py`](file:///d:/Vivah/app/matching/batch_runner.py)
-- **Purpose**: Scheduled sequential batch runner executing candidate discovery for all completed profiles.
-- **Rate Limiting (`GroqRateLimiter`)**: Sliding window limiter that tracks request timestamps and delays execution when approaching 25 requests in a 60-second window to prevent free-tier API throttling.
-
-#### [`app/matching/social_overlap.py`](file:///d:/Vivah/app/matching/social_overlap.py)
-- **Purpose**: Client-side extracted social following list overlap calculation.
-- **Mathematical Specification**: Computes Jaccard Similarity Coefficient between normalized (lowercased, stripped, deduplicated) username sets $A$ and $B$:
-  $$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
-- **Short-Circuit Rule**: Returns `{"overlap_score": 0.0, "shared_count": 0}` if either party has `opted_in=False` or an empty list.
-- **Architectural Isolation**: Strictly one-directional; zero references in `app/scoring/`. Computes after tier classification and has zero effect on `overall_score`, `tier`, or `tier_ceiling`.
-
-#### [`app/api/routes_following.py`](file:///d:/Vivah/app/api/routes_following.py)
-- **Endpoints**:
-  - `POST /profiles/{profile_id}/following`: Ingests JSON string array `{"usernames": ["..."]}`, normalizes, upserts `FollowingList`, and sets `opted_in=True`.
-  - `DELETE /profiles/{profile_id}/following`: Permanently purges `FollowingList` record and sets `opted_in=False` (idempotent).
+| Pillar ID | Pillar Name | Weight Range | Koota IDs | Core Focus |
+|:---|:---|:---|:---|:---|
+| **Pillar A** | Career, Ambition & Geography | $w6$–$w12$ | 1, 2, 3 | Geographic relocation willingness, career priority balance, travel rhythm. |
+| **Pillar B** | Financial Architecture & Philosophy | $w8$–$w14$ | 4, 5, 6, 7 | Debt philosophy, joint vs separate accounts, risk tolerance, parental support obligations. |
+| **Pillar C** | Family Systems & Boundary Dynamics | $w8$–$w14$ | 8, 9, 10 | Co-living with in-laws, parental involvement in conflict, elderly care distribution. |
+| **Pillar D** | Children, Parenting & Legacy | $w10$–$w15$ | 11, 12, 13 | Desired number of children, timeline, schooling philosophy, religious upbringing. |
+| **Pillar E** | Conflict Architecture & Communication | $w8$–$w14$ | 14, 15, 16, 17 | Conflict resolution style (cool-down vs immediate), repair speed, apologies. |
+| **Pillar F** | Household Labor & Operational Symmetry | $w6$–$w10$ | 18, 19, 20 | Domestic chore division, cooking responsibilities, outsourced domestic help. |
+| **Pillar G** | Emotional Processing & Vulnerability | $w8$–$w12$ | 21, 22, 23 | Emotional expression comfort, stress decompression needs, deep listening habits. |
+| **Pillar H** | Social Life, Independence & Friendships | $w4$–$w8$ | 24, 25 | Solo time necessity, friend group integration, weekend social battery. |
+| **Pillar I** | Spirituality, Faith & Rituals | $w6$–$w12$ | 26, 27, 28 | Daily spiritual practice, festival celebration intensity, dietary religious strictness. |
+| **Pillar J** | Intimacy, Affection & Romance | $w8$–$w12$ | 29, 30 | Pre-marital emotional intimacy dialogue, daily physical non-sexual affection. |
+| **Pillar K** | Health, Wellness & Lifestyle | $w4$–$w8$ | 31, 32, 33 | Dietary habits (vegetarian/non-veg), fitness discipline, sleep schedule synchronization. |
+| **Pillar L** | Crisis Resilience & Adaptability | $w8$–$w12$ | 34, 35, 36, 37 | Substance usage habits, reaction to sudden career loss, grief support style. |
+| **Pillar M** | Shared Meaning & Life Purpose | **$w14$–$w15$** | 38, 39, 40, 41 | **Existential coping, 10-year life vision, fundamental purpose of marriage.** |
+| **Pillar N** | Hard Demographics & Community | **Filter / $w1$** | 42 | Age gap ceiling ($\le 2$ yrs), religion match, community/caste requirements. |
 
 ---
 
-### 4.6. Mutual Interest & Staged Disclosure (`app/interest/` & `app/api/routes_interest.py`)
+## 8. Verification & Automated Test Infrastructure
 
-#### [`app/interest/interest_service.py`](file:///d:/Vivah/app/interest/interest_service.py)
-- **Purpose**: Manages expressions of interest, terminal declines, and atomic mutual confirmation.
-- **Key Functions**:
-  - `express_interest(db, profile_id, target_profile_id, action="pending")`:
-    - **Weekly Match Validation**: Asserts `target_profile_id` is present in caller's `WeeklyMatchList` (raises HTTP 400 otherwise).
-    - **Atomic Mutual Flip**: If caller expresses `"pending"` and target's reverse interest row is already `"pending"`, **both rows are flipped to `"mutual"` in the same database transaction**.
-    - **Terminal Decline State**: If caller sets action `"declined"`, status becomes `"declined"`. If target later expresses interest, the pair never flips to `"mutual"`.
-  - `get_interest_status_for_profile(db, profile_id)`:
-    - **Staged Disclosure Rule**: Returns caller's interest status for all candidates in their weekly match list. Unilateral `"pending"` or `"declined"` states are returned as `"none"` to the target until mutuality is confirmed.
+The codebase enforces full-stack automated testing across backend unit/integration tests and mobile component/reducer tests:
 
-#### [`app/api/routes_interest.py`](file:///d:/Vivah/app/api/routes_interest.py)
-- **Endpoints**:
-  - `POST /interest`: Accepts `ExpressInterestRequest(profile_id, target_profile_id, action="pending" | "declined")`.
-  - `GET /interest/{profile_id}/status`: Returns `InterestStatusListResponse` for caller.
-
-#### [`app/api/routes_weekly.py`](file:///d:/Vivah/app/api/routes_weekly.py)
-- **Purpose**: Constant-time, read-only delivery of precomputed weekly matches.
-- **Endpoint**:
-  - `GET /profiles/{profile_id}/weekly-matches`: Performs indexed join on `WeeklyMatchList` and `Profile`, maps caller's own interest status, calculates `mutual_matches_count`, and returns `WeeklyMatchListResponse` with zero live scoring computations.
-
----
-
-## 5. API Interface Specification
-
-### 5.1. Authentication Routes (`/auth`)
-
-| Endpoint | Method | Request Payload | Response Model | HTTP Status | Description |
-| :--- | :---: | :--- | :--- | :---: | :--- |
-| `/auth/invite/generate` | `POST` | `InviteGenerateRequest(created_by, expires_in_days)` | `InviteGenerateResponse` | `201 Created` | Generates a new single-use 8-character invite code. |
-| `/auth/invite/redeem` | `POST` | `InviteRedeemRequest(code)` | `InviteRedeemResponse` | `200 OK` | Validates code and issues a signed 24-hour session token. |
-| `/auth/google/callback` | `POST` | `GoogleCallbackRequest(access_token, invite_code)` | `GoogleAuthResponse` | `200 OK` | Verifies Google identity and links/creates Profile. |
-| `/auth/session` | `GET` | Headers: `Authorization: Bearer <token>` | `SessionVerifyResponse` | `200 OK` | Validates active session token authenticity. |
-
-### 5.2. Profile & Following Routes (`/profiles`)
-
-| Endpoint | Method | Request Payload | Response Model | HTTP Status | Description |
-| :--- | :---: | :--- | :--- | :---: | :--- |
-| `/profiles` | `POST` | `ProfileCreate(name, age, gender, religion, caste, ...)` | `ProfileResponse` | `201 Created` | Creates profile (requires valid invite token). |
-| `/profiles/{id}` | `GET` | None | `ProfileResponse` | `200 OK` | Retrieves profile summary and answer counts. |
-| `/profiles/{id}/answers` | `POST` | `BulkAnswersSubmit(answers: List[AnswerSubmitItem])` | `Dict[str, Any]` | `200 OK` | Ingests bulk answers and caches vector embeddings. |
-| `/profiles/{id}/completion` | `GET` | None | `ProfileCompletionStatus` | `200 OK` | Verifies all 42 distinct Kootas are completed. |
-| `/profiles/{id}/following` | `POST` | `FollowingUploadRequest(usernames: List[str])` | `FollowingUploadResponse` | `200 OK` | Upserts normalized social following list. |
-| `/profiles/{id}/following` | `DELETE` | None | `FollowingDeleteResponse` | `200 OK` | Idempotently deletes following list and opts out. |
-
-### 5.3. Matching & Interest Routes (`/match`, `/interest`)
-
-| Endpoint | Method | Request Payload | Response Model | HTTP Status | Description |
-| :--- | :---: | :--- | :--- | :---: | :--- |
-| `/match/{id_a}/{id_b}` | `POST` | None | `MatchResponse` | `200 OK` | Runs direct on-demand pair match evaluation. |
-| `/match/{id}/candidates` | `GET` | Query: `limit: int = 10` | `CandidateListResponse` | `200 OK` | Returns ranked candidate list for a profile. |
-| `/profiles/{id}/weekly-matches` | `GET` | None | `WeeklyMatchListResponse` | `200 OK` | Constant-time read-only lookup of precomputed Top 5. |
-| `/interest` | `POST` | `ExpressInterestRequest(profile_id, target_id, action)` | `InterestResponse` | `200 OK` | Expresses pending interest or sets terminal decline. |
-| `/interest/{id}/status` | `GET` | None | `InterestStatusListResponse` | `200 OK` | Retrieves interest statuses under staged disclosure rules. |
-
----
-
-## 6. Database Schema & Relational Specifications
-
-```mermaid
-erDiagram
-    PROFILES ||--o{ ANSWERS : submits
-    PROFILES ||--o{ MATCH_RESULTS : participant_a
-    PROFILES ||--o{ MATCH_RESULTS : participant_b
-    PROFILES ||--o{ WEEKLY_MATCH_LISTS : receives
-    PROFILES ||--o| FOLLOWING_LISTS : maintains
-    PROFILES ||--o{ INTERESTS : expresses
-    KOOTAS ||--o{ ANSWERS : categorizes
-
-    PROFILES {
-        string id PK
-        string name
-        int age
-        string gender
-        string religion
-        string caste
-        string caste_preference
-        string city
-        boolean is_active
-        datetime created_at
-    }
-
-    KOOTAS {
-        int koota_id PK
-        string name
-        string pillar
-        int weight
-        boolean is_hard_filter
-        json objective_questions
-        json subjective_questions
-    }
-
-    ANSWERS {
-        int id PK
-        string profile_id FK
-        int koota_id FK
-        int question_index
-        string question_type
-        text raw_value
-        json embedding
-        datetime created_at
-    }
-
-    MATCH_RESULTS {
-        int id PK
-        string profile_a_id FK
-        string profile_b_id FK
-        boolean is_viable
-        string hard_filter_reason
-        float overall_score
-        string tier
-        float objective_score
-        float semantic_score
-        json disagreement_flags
-        json alignment_points
-        json friction_points
-        float social_overlap_score
-        int shared_account_count
-        datetime created_at
-    }
-
-    INVITE_CODES {
-        int id PK
-        string code UK
-        string created_by
-        string used_by
-        datetime used_at
-        datetime expires_at
-        datetime created_at
-    }
-
-    WEEKLY_MATCH_LISTS {
-        int id PK
-        string profile_id FK
-        string candidate_id FK
-        float score
-        string tier
-        json alignment_points
-        json friction_points
-        json contradiction_gates
-        float social_overlap_score
-        int shared_account_count
-        datetime generated_at
-    }
-
-    FOLLOWING_LISTS {
-        int id PK
-        string profile_id FK,UK
-        json usernames
-        boolean opted_in
-        datetime uploaded_at
-    }
-
-    INTERESTS {
-        int id PK
-        string profile_id FK
-        string target_profile_id FK
-        string status
-        datetime expressed_at
-    }
-```
-
----
-
-## 7. The 14 Life Pillars & 42-Koota Domain Framework
-
-| Pillar | Focus & Domain Realities | Weight Scale | Koota IDs | Key Evaluated Topics |
-| :--- | :--- | :---: | :---: | :--- |
-| **Pillar A** | Knowing Each Other (Love Maps) | $w4$–$w6$ | 1, 2, 3, 4 | Formative upbringing, daily energy rhythms, stress coping, personal dreams. |
-| **Pillar B** | Fondness, Admiration & Respect | $w6$–$w10$ | 5, 6 | Verbal gratitude habits, egalitarian respect across social strata. |
-| **Pillar C** | Emotional Attunement & Bids | $w6$–$w8$ | 9, 10 | Emotional bid responsiveness, de-escalation repair attempts. |
-| **Pillar D** | Mutual Influence & Decision Making | $w10$–$w12$ | 7, 8 | Conflict engagement vs space, direct vs indirect feedback in joint family. |
-| **Pillar E** | Conflict Style & De-escalation | $w8$–$w10$ | 11, 12, 13, 14, 15, 16 | Trust baseline, permanence philosophy, temperament, solo space. |
-| **Pillar F** | In-Law Dynamics & Elder Care | **$w10$–$w14$** | 17, 18, 19, 20, 24 | **Traditional elder deference, parental interference boundaries, sibling kin support, multi-generational elder care.** |
-| **Pillar G** | Career Continuity & Gender Roles | **$w10$–$w14$** | 21, 22, 23 | **Living arrangements (joint vs nuclear), domestic chore equality, postpartum career restarts.** |
-| **Pillar H** | Financial Architecture & Money | $w10$–$w12$ | 25, 26, 27, 28 | Saver/spender orientation, joint vs separate accounts, wedding budget transparency. |
-| **Pillar I** | Parenting Philosophy & Family Size | $w8$–$w12$ | 31, 32, 33 | Child timeline, discipline styles, academic vs creative pressure. |
-| **Pillar J** | Intimacy & Affection | $w6$–$w10$ | 29, 30 | Pre-marital intimacy dialogue comfort, daily non-sexual affection. |
-| **Pillar K** | Social Architecture & Community | $w4$–$w8$ | 34, 35 | Opposite-sex friendship boundaries, socializing frequency. |
-| **Pillar L** | Crisis Resilience & Life Transitions | $w8$–$w12$ | 36, 37 | Dietary lifestyle/substance habits, spiritual practice intensity. |
-| **Pillar M** | Shared Meaning & Life Purpose | **$w14$–$w15$** | 38, 39, 40, 41 | **Existential coping, festival traditions, 10-year life vision, foundational purpose of marriage.** |
-| **Pillar N** | Hard Demographics & Filters | **Filter / $w1$** | 42 | Age gap threshold ($\le 2$ yrs), religion equality, caste preferences. |
-
----
-
-## 8. Automated Testing Infrastructure
-
-The test suite contains **70 unit and integration tests** executing in $< 13$ seconds:
-
-```text
-tests/test_phase1_scaffolding.py                 [3/3 passed]
-tests/test_objective_scorer.py                   [8/8 passed]
-tests/test_semantic_scorer.py                    [6/6 passed]
-tests/test_nli_scorer.py                         [3/3 passed]
-tests/test_llm_judge.py                          [4/4 passed]
-tests/test_gated_aggregation.py                  [2/2 passed]
-tests/test_social_overlap.py                     [6/6 passed]
-tests/test_following_api.py                      [4/4 passed]
-tests/test_interest_service.py                   [7/7 passed]
-tests/test_interest_api.py                       [2/2 passed]
-tests/test_api_and_tiers.py                      [5/5 passed]
-tests/test_aggregation.py                        [3/3 passed]
-tests/test_synthetic_matching.py                 [6/6 passed]
-tests/test_auth.py                               [5/5 passed]
-tests/test_candidates_batch.py                   [3/3 passed]
-tests/test_weekly_matches_api.py                 [3/3 passed]
-======================== 70 passed in 12.53s ========================
-```
-
-### Mocking & Isolation Strategies
-- **Hugging Face Mocking**: Tests mock `fetch_hf_embedding` and `fetch_hf_nli` via pytest `monkeypatch` to validate deterministic cosine math and entailment classification offline.
-- **LLM Judge Mocking**: Mocks Groq/OpenRouter HTTP client responses to test structured schema parsing, JSON extraction, and fallback transitions.
-- **Database Session Isolation**: Tests use transactional rollbacks and unique profile test IDs against local SQLite engine, preventing cross-test pollution.
-
----
-
-## 9. Security, Privacy & Secret Management
-
-1. **Zero-Knowledge Match Payloads**: Responses never return raw user free-text or sensitive demographics.
-2. **Staged Disclosure of Interest**: Unilateral expressions of interest are invisible to the target until mutual confirmation.
-3. **Strict Secrets Hygiene**: Zero API keys or tokens are stored in source code. All secrets are injected via environment variables and GitHub Secrets.
-4. **Invite-Only Identity Gating**: All profile creation requires validated single-use invite codes with HMAC-signed session tokens.
-
----
-
-## 10. Zero-Cost Infrastructure & Deployment Architecture
-
-```
-┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
-│  Render Free Web App   │      │  Supabase Free Postgres│      │  GitHub Actions Cron   │
-│  FastAPI Application   │◄────►│  Postgres + pgvector   │◄────►│  Keepalive (every 3d)  │
-│  (Read-only Matches)   │      │  + Supabase Google Auth│      │  Weekly Match (Sunday) │
-└────────────────────────┘      └────────────────────────┘      └────────────────────────┘
-            │                                                                │
-            ▼                                                                ▼
-┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
-│  Groq Free LLM Tier    │      │  OpenRouter Free Pool  │      │  Hugging Face Serverless│
-│  Llama-3.3-70B (30 RPM)│      │  Nemotron & Gemma-4    │      │  MiniLM & BART-MNLI    │
-└────────────────────────┘      └────────────────────────┘      └────────────────────────┘
-```
-
-- **Render Service**: `https://koota-match-engine.onrender.com`
-- **Database**: Supabase PostgreSQL (Tokyo `ap-northeast-1`)
-- **Keepalive Cron**: GitHub Actions ping every 3 days to prevent inactivity sleep.
-- **Weekly Match Cron**: GitHub Actions batch execution every Sunday at 00:00 UTC.
-
----
-
-## 11. Maintenance & Engineering Runbook
-
-### Local Environment Setup
+### Backend Pytest Suite (**89 passed**, 0 failed)
 ```bash
-# Clone repository
+pytest -v
+```
+- Scaffolding & Seed verification (`test_phase1_scaffolding.py`): 3 tests.
+- Scorer & Judge units (`test_objective_scorer.py`, `test_semantic_scorer.py`, `test_nli_scorer.py`, `test_llm_judge.py`): 21 tests.
+- Social graph overlap isolation (`test_social_overlap.py`, `test_following_api.py`): 10 tests.
+- Interest service & staged-disclosure E2E (`test_interest_service.py`, `test_interest_api.py`, `test_interest_staged_disclosure_e2e.py`): 12 tests.
+- Batch & On-Demand funnel verification (`test_candidates_batch.py`, `test_on_demand_refresh_and_compatibility.py`): 9 tests.
+- Hard-filter consistency & answers upsert (`test_hard_filter_field_consistency.py`, `test_profile_answers_upsert_and_patch.py`): 8 tests.
+- Compatibility code privacy & boundaries (`test_compatibility_codes_privacy.py`): 4 tests.
+- Synthetic pool edge cases (`test_synthetic_matching.py`): 6 tests.
+- Complete API & Tier validations (`test_api_and_tiers.py`, `test_auth.py`, `test_weekly_matches_api.py`): 16 tests.
+
+### Mobile Jest Suite (**17 test suites, 55 passed**, 0 failed)
+```bash
+cd mobile && npm test -- --watchAll=false
+```
+- Component tests: `MatchCard.test.tsx`, `AlignmentFrictionList.test.tsx`, `DeclineConfirmationModal.test.tsx`, `MutualRevealAnimation.test.tsx`, `RefreshMatchesButton.test.tsx`.
+- Screen tests: `WeeklyMatchesScreen.test.tsx`, `CompatibilityCodeScreen.test.tsx`, `EditProfileScreen.test.tsx`, `InviteCodeScreen.test.tsx`, `LoginScreen.test.tsx`, `ProfileSetupScreen.test.tsx`, `ObjectiveQuestionnaireScreen.test.tsx`, `SubjectiveQuestionnaireScreen.test.tsx`.
+- Reducer & context tests: `interestReducer.test.ts`, `AuthContext.test.tsx`, `QuestionnaireContext.test.tsx`, `authApi.test.ts`.
+
+### TypeScript Typecheck (**0 errors**)
+```bash
+cd mobile && npx tsc --noEmit
+```
+
+---
+
+## 9. Security, Supply Chain & Privacy Audit
+
+1. **Zero-Knowledge Match Serialization**: Responses never leak raw free-text answers, raw following handles, phone numbers, or unconsented demographics.
+2. **Ownership Verification (403 Gates)**: Enforced via `verify_profile_ownership` dependency across all private/mutating routes (`PATCH/DELETE /profiles/{id}`, `/answers`, `/weekly-matches`, `/refresh-matches`, `/compatibility-code`, `/compatibility-check`, `/following`, `/interest`).
+3. **Secrets Management**: Zero hardcoded keys or API tokens. Secrets are passed via runtime environment variables and GitHub Action secrets.
+4. **Supply Chain BOM**: CycloneDX-standard Software Bill of Materials generated for both backend ([`sbom-backend.json`](file:///d:/Vivah/sbom-backend.json)) and mobile ([`sbom-mobile.json`](file:///d:/Vivah/sbom-mobile.json)).
+5. **Cold-Start & Rate Limit Protection**: Sliding window rate-limiters prevent exceeding free LLM quotas, while client-side retry protects mobile users against platform cold starts.
+
+---
+
+## 10. Deployment, CI/CD & Build Runbook
+
+### Local Development Setup
+
+#### Backend Setup:
+```bash
 git clone https://github.com/yashwoodstock-blip/koota-match-engine.git
 cd koota-match-engine
 
-# Create virtual environment
 python -m venv venv
 venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
 
-# Seed Kootas & Synthetic Profiles
+# Seed 42 Kootas and 16 Synthetic Profiles
 python -m app.db.seed_kootas
 python -m app.db.seed_synthetic
 
-# Run API server
-uvicorn app.main:app --reload
-
-# Execute test suite
-pytest -v
+# Run FastAPI Local Server
+uvicorn app.main:app --reload --port 8000
 ```
 
-### Manual Trigger of Weekly Batch Runner
+#### Mobile Setup:
 ```bash
-python -m app.matching.batch_runner
+cd mobile
+npm install
+npx expo start
 ```
+
+### EAS Android Build Generation
+Build configuration is located in [`mobile/eas.json`](file:///d:/Vivah/mobile/eas.json):
+```bash
+# Build standalone Android APK for device testing
+cd mobile
+npx eas-cli build --platform android --profile preview
+
+# Build production Android App Bundle (AAB) for Google Play
+npx eas-cli build --platform android --profile production
+```
+
+### CI/CD Workflow
+Located at [`.github/workflows/ci.yml`](file:///d:/Vivah/.github/workflows/ci.yml). Automatically triggers on every push and pull request to `main`:
+- Job 1: Sets up Python 3.12, installs dependencies, and runs full 89-test Pytest suite.
+- Job 2: Sets up Node.js 20, runs TypeScript typecheck (`tsc --noEmit`), and executes all 55 Jest unit tests.
 
 ---
 
-## 12. Version History & Changelog
+## 11. Version History & Changelog
 
 - **v1.0.0 (Phases 1–5)**: 42-Koota Question Bank, objective partial credit matrices, MiniLM vector caching, BART-MNLI contradiction scoring, Groq Llama-3.3-70B judge, and 3-tier classification.
 - **v1.1.0 (Phase 6)**: Invite-only Google OAuth gate and scheduled Sunday precomputed weekly match funnel.
-- **v1.2.0 (Phase 7)**: Opt-in client-extracted social following list Jaccard overlap signal.
+- **v1.2.0 (Phase 7)**: Opt-in client-extracted social following list Jaccard overlap signal (strictly isolated).
 - **v1.3.0 (Phase 8)**: Mutual-interest confirmation, single-transaction atomic flip, and staged disclosure privacy rules.
+- **v1.4.0 (Phase 9 & 10)**: React Native Expo mobile app, Google OAuth authentication flow, `expo-secure-store` integration, and editorial 42-Koota onboarding questionnaire.
+- **v1.5.0 (Phase 11 & 11.5)**: Weekly Matches screen, Match Cards, optimistic interest reducer, celebration reveal animation, and Edit Profile & Answers screen with match reset warnings.
+- **v1.6.0 (Addenda)**: On-demand Funnel Refresh with 24-hour rate limit cooldown and Mutual-Consent Compatibility Codes with 7-day TTL and zero raw data leaks.
+- **v1.7.0 (Hardening & Pre-Deployment Audit)**: Architecture refactoring into `match_pipeline_service`, ownership verification on all routes, structured logging middleware, live DB health probe, CycloneDX SBOM generation, EAS build profile, and multi-job CI workflow.
