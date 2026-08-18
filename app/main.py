@@ -10,6 +10,7 @@ from app.api.routes_auth import router as auth_router
 from app.api.routes_weekly import router as weekly_router
 from app.api.routes_following import router as following_router
 from app.api.routes_interest import router as interest_router
+from app.api.routes_on_demand import router as on_demand_router
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ app.add_middleware(
 # Wire API routers
 app.include_router(auth_router)
 app.include_router(profiles_router)
+app.include_router(on_demand_router)
 app.include_router(following_router)
 app.include_router(interest_router)
 app.include_router(match_router)

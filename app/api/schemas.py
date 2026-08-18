@@ -154,3 +154,38 @@ class CandidateMatchSummary(BaseModel):
     contradiction_count: int = 0
     social_overlap_score: Optional[float] = 0.0
     shared_account_count: Optional[int] = 0
+
+
+class RefreshMatchesResponse(BaseModel):
+    profile_id: str
+    total_matches: int
+    refreshed_at: datetime
+    next_eligible_at: datetime
+    matches: List[CandidateMatchSummary] = []
+
+
+class CompatibilityCodeCreateResponse(BaseModel):
+    code: str
+    creator_profile_id: str
+    created_at: datetime
+    expires_at: datetime
+
+
+class CompatibilityCheckRequest(BaseModel):
+    code: str = Field(..., min_length=4, max_length=32)
+
+
+class CompatibilityCheckResponse(BaseModel):
+    creator_profile_id: str
+    redeemer_profile_id: str
+    code: str
+    is_viable: bool
+    tier: str
+    overall_score: Optional[float] = None
+    alignment_points: List[str] = []
+    friction_points: List[str] = []
+    hard_filter_reason: Optional[str] = None
+    social_overlap_score: Optional[float] = 0.0
+    shared_account_count: Optional[int] = 0
+    calculated_at: datetime
+

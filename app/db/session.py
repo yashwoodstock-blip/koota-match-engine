@@ -37,6 +37,8 @@ async def init_db() -> None:
     """Initialize tables in database."""
     from app.models import Base
     from app.db.migrate_profile_updates import run_profile_update_migrations
+    from app.db.migrate_on_demand_matching import run_on_demand_matching_migrations
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await run_profile_update_migrations()
+    await run_on_demand_matching_migrations()

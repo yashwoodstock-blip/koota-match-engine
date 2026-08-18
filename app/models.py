@@ -54,6 +54,7 @@ class Profile(Base):
     caste_preference = Column(String(100), nullable=True)  # "no_preference", "same_caste_preferred", "same_caste_required"
     city = Column(String(100), nullable=True)
     invite_code = Column(String(32), nullable=True, index=True)
+    last_refreshed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
@@ -189,3 +190,23 @@ class Interest(Base):
 
     def __repr__(self) -> str:
         return f"<Interest from='{self.profile_id}' to='{self.target_profile_id}' status='{self.status}'>"
+
+
+class CompatibilityCode(Base):
+    __tablename__ = "compatibility_codes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(32), unique=True, nullable=False, index=True)
+    creator_profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    used_by_profile_id = Column(String(64), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True, index=True)
+    used_at = Column(DateTime, nullable=True)
+
+    creator = relationship("Profile", foreign_keys=[creator_profile_id])
+    used_by = relationship("Profile", foreign_keys=[used_by_profile_id])
+
+    def __repr__(self) -> str:
+        return f"<CompatibilityCode code='{self.code}' creator='{self.creator_profile_id}' is_used={self.is_used}>"
+
