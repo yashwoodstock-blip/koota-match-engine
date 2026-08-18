@@ -46,6 +46,9 @@ class LLMJudgeResult:
     agreement_score: float
     contradiction: bool
     reasoning: str
+    confidence: float = 0.90
+    alignment_points: List[str] = field(default_factory=list)
+    friction_points: List[str] = field(default_factory=list)
     key_tensions: List[str] = field(default_factory=list)
     provider_used: str = "none"
 
@@ -54,12 +57,24 @@ JUDGE_SYSTEM_PROMPT = """You are a rigorous, impartial psychological and marital
 Your task is to analyze two prospective marriage candidates' responses to a foundational marriage question.
 Evaluate whether their core values, boundaries, expectations, and non-negotiables are in genuine harmony, neutral divergence, or irreconcilable contradiction.
 
-You MUST respond strictly with valid JSON conforming to this schema:
+CRITICAL EVALUATION RULES:
+1. Grounded Evaluation: Base your evaluation strictly on the explicit text provided; do not extrapolate, assume unstated motivations, or infer traits not directly stated.
+2. Non-Compensatory Awareness: For high-stakes dimensions (conflict resolution, life purpose, desire for children, crisis habits), do not allow polite tone, affectionate language, or superficial warmth to compensate for an underlying structural disagreement.
+3. Calibration Spectrum: Calibrate scores across the full 0.0 to 1.0 range:
+   - 0.0 to 0.3: Fundamental incompatibility, structural opposition, or mutual hostility.
+   - 0.4 to 0.6: Moderate divergence, differing life rhythms, or neutral variance.
+   - 0.7 to 1.0: Strong ideological resonance, deep mutual alignment, and shared vision.
+4. Uncertainty Elicitation: If either candidate provides vague, evasive, one-word, or underspecified responses, lower the 'confidence' score (< 0.50).
+
+You MUST respond strictly with valid JSON conforming to this schema (reasoning first):
 {
-  "agreement_score": <float between 0.0 (total opposition) and 1.0 (perfect harmony)>,
-  "contradiction": <boolean true if their stances represent an irreconcilable contradiction or dealbreaker, otherwise false>,
-  "reasoning": "<concise 1-2 sentence neutral analysis of their alignment or tension>",
-  "key_tensions": ["<brief key friction points if any, or empty list>"]
+  "reasoning": "<concise 1-2 sentence neutral chain-of-thought analysis of alignment and tension>",
+  "agreement_score": <float between 0.0 and 1.0>,
+  "contradiction": <boolean true if irreconcilable contradiction or dealbreaker exists, otherwise false>,
+  "confidence": <float between 0.0 (underspecified/ambiguous) and 1.0 (clear/unambiguous)>,
+  "alignment_points": ["<brief key alignment point if any, or empty list>"],
+  "friction_points": ["<brief key friction point if any, or empty list>"],
+  "key_tensions": ["<brief key tension if any, or empty list>"]
 }
 
 Do not include any introductory or conversational text, markdown fences, or explanation outside the JSON object."""
@@ -72,11 +87,19 @@ def _clean_json_response(raw_text: str) -> Dict[str, Any]:
     if match:
         text = match.group(0)
     data = json.loads(text)
+    
+    # Handle key_tensions vs friction_points
+    frictions = list(data.get("friction_points", [])) or list(data.get("key_tensions", []))
+    alignments = list(data.get("alignment_points", []))
+
     return {
         "agreement_score": max(0.0, min(1.0, float(data.get("agreement_score", 0.5)))),
         "contradiction": bool(data.get("contradiction", False)),
+        "confidence": max(0.0, min(1.0, float(data.get("confidence", 0.85)))),
         "reasoning": str(data.get("reasoning", "")).strip(),
-        "key_tensions": list(data.get("key_tensions", [])),
+        "alignment_points": alignments,
+        "friction_points": frictions,
+        "key_tensions": frictions,
     }
 
 
@@ -240,7 +263,10 @@ Evaluate agreement score, whether a direct contradiction exists, and summarize k
         koota_id=koota_id,
         agreement_score=data["agreement_score"],
         contradiction=data["contradiction"],
+        confidence=data.get("confidence", 0.90),
         reasoning=data["reasoning"],
+        alignment_points=data.get("alignment_points", []),
+        friction_points=data.get("friction_points", []),
         key_tensions=data.get("key_tensions", []),
         provider_used=provider,
     )

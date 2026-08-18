@@ -2,7 +2,7 @@
 
 Zero raw answer text is exposed. Only templated insights keyed by koota_id are generated.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
 from app.scoring.aggregate import AggregateMatchResult
 
@@ -107,6 +107,13 @@ class TierEvaluationResult:
     capped_by: Optional[Dict[str, Any]] = None
     ceiling_applied: Optional[float] = None
     compensatory_score: Optional[float] = None
+    risk_adjusted_score: Optional[float] = None
+    score_uncertainty: Optional[float] = None
+    score_interval: Optional[List[float]] = None
+    confidence: Optional[str] = None
+    evidence_coverage_pct: Optional[float] = None
+    critical_contradictions: int = 0
+    high_impact_uncertainty: List[str] = field(default_factory=list)
 
 
 def classify_tier(
@@ -125,9 +132,17 @@ def classify_tier(
             capped_by=aggregate.capped_by,
             ceiling_applied=aggregate.ceiling_applied,
             compensatory_score=aggregate.compensatory_score,
+            risk_adjusted_score=aggregate.risk_adjusted_score,
+            score_uncertainty=aggregate.score_uncertainty,
+            score_interval=aggregate.score_interval,
+            confidence=aggregate.confidence or "Low",
+            evidence_coverage_pct=aggregate.evidence_coverage_pct or 0.0,
+            critical_contradictions=aggregate.critical_contradictions,
+            high_impact_uncertainty=aggregate.high_impact_uncertainty,
         )
 
-    score = aggregate.overall_score
+    # Risk-adjusted score is used for tier decisions and ranking
+    effective_score = aggregate.risk_adjusted_score if aggregate.risk_adjusted_score is not None else aggregate.overall_score
     koota_scores = aggregate.koota_scores
     flags = aggregate.disagreement_flags
 
@@ -183,16 +198,16 @@ def classify_tier(
             if template and template not in frictions:
                 frictions.append(template)
 
-    # Determine Tier with Gated Overrides
+    # Determine Tier with Gated Overrides based on Risk-Adjusted Score
     has_high_disagreements = any(f.get("severity") == "high" for f in flags)
     has_critical_koota_friction = any(
         k_id in [18, 22, 23, 41] and koota_scores.get(k_id, 1.0) < 0.60
         for k_id in koota_scores
     )
 
-    if score < 0.50:
+    if effective_score < 0.50:
         tier = "not viable"
-    elif score >= 0.75 and not has_high_disagreements and not has_critical_koota_friction:
+    elif effective_score >= 0.75 and not has_high_disagreements and not has_critical_koota_friction:
         tier = "strong match"
     else:
         tier = "compatible with flagged friction points"
@@ -210,4 +225,11 @@ def classify_tier(
         capped_by=aggregate.capped_by,
         ceiling_applied=aggregate.ceiling_applied,
         compensatory_score=aggregate.compensatory_score,
+        risk_adjusted_score=aggregate.risk_adjusted_score,
+        score_uncertainty=aggregate.score_uncertainty,
+        score_interval=aggregate.score_interval,
+        confidence=aggregate.confidence,
+        evidence_coverage_pct=aggregate.evidence_coverage_pct,
+        critical_contradictions=aggregate.critical_contradictions,
+        high_impact_uncertainty=aggregate.high_impact_uncertainty,
     )

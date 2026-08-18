@@ -132,6 +132,13 @@ class MatchResponse(BaseModel):
     compensatory_score: Optional[float] = None
     ceiling_applied: Optional[float] = None
     capped_by: Optional[Dict[str, Any]] = None
+    risk_adjusted_score: Optional[float] = None
+    score_uncertainty: Optional[float] = None
+    score_interval: Optional[List[float]] = None
+    confidence: Optional[str] = None
+    evidence_coverage_pct: Optional[float] = None
+    critical_contradictions: Optional[int] = 0
+    high_impact_uncertainty: List[str] = []
     objective_score: Optional[float] = None
     semantic_score: Optional[float] = None
     tier_ceiling: Optional[str] = None
@@ -154,6 +161,13 @@ class CandidateMatchSummary(BaseModel):
     compensatory_score: Optional[float] = None
     ceiling_applied: Optional[float] = None
     capped_by: Optional[Dict[str, Any]] = None
+    risk_adjusted_score: Optional[float] = None
+    score_uncertainty: Optional[float] = None
+    score_interval: Optional[List[float]] = None
+    confidence: Optional[str] = None
+    evidence_coverage_pct: Optional[float] = None
+    critical_contradictions: Optional[int] = 0
+    high_impact_uncertainty: List[str] = []
     alignment_points: List[str] = []
     friction_points: List[str] = []
     disagreement_count: int = 0

@@ -259,6 +259,13 @@ async def run_candidates_funnel_for_profile(
             candidate_id=cand.id,
             score=aggregate.overall_score or 0.0,
             tier=tier_eval.tier,
+            risk_adjusted_score=aggregate.risk_adjusted_score or aggregate.overall_score or 0.0,
+            score_uncertainty=aggregate.score_uncertainty,
+            score_interval=aggregate.score_interval,
+            confidence=aggregate.confidence or "Low",
+            evidence_coverage_pct=aggregate.evidence_coverage_pct,
+            critical_contradictions=aggregate.critical_contradictions,
+            high_impact_uncertainty=aggregate.high_impact_uncertainty,
             alignment_points=tier_eval.alignment_points,
             friction_points=tier_eval.friction_points,
             contradiction_gates=aggregate.contradiction_gates,
@@ -271,9 +278,12 @@ async def run_candidates_funnel_for_profile(
         *[_evaluate_single_candidate(item) for item in shortlist_10]
     )
 
-    # Step 5: Sort by score descending and persist top 5 in same transaction
+    # Step 5: Sort by risk_adjusted_score descending (and tiebreak by raw score) and persist top 5
     evaluated_matches = list(evaluated_matches)
-    evaluated_matches.sort(key=lambda m: m.score, reverse=True)
+    evaluated_matches.sort(
+        key=lambda m: (m.risk_adjusted_score if m.risk_adjusted_score is not None else m.score, m.score),
+        reverse=True,
+    )
     top_5 = evaluated_matches[:max_weekly_matches]
 
     # Delete existing weekly matches for this profile and insert new top 5

@@ -260,10 +260,25 @@ $$\text{ceiling}_n(S_n) = \begin{cases}
 For degenerate hard cliffs ($\tau_{\text{low}} = \tau_{\text{high}}$, such as Koota 31 Desire for Children):
 $$\text{ceiling}_n(S_n) = \begin{cases} 1.0 & \text{if } S_n \ge \tau_{\text{high}} \\ \text{floor}_n & \text{if } S_n < \tau_{\text{high}} \end{cases}$$
 
-### 3. Final Score Synthesis
-$$\text{FinalScore} = \text{round}\left(\text{CompScore} \times \min_{n \in \mathcal{N}} \text{ceiling}_n(S_n), 4\right)$$
+### 3. Uncertainty Quantification & Variance Propagation
+Each Koota tracks an uncertainty term $\sigma_k \in [0.01, 0.40]$ derived from missing answers, answer modality, NLI contradiction margins, and LLM judge confidence:
+$$\sigma_k = \min\left(0.40, \sqrt{\sigma_{\text{base}}^2 + \sigma_{\text{missing}}^2 + \sigma_{\text{NLI}}^2 + \sigma_{\text{LLM}}^2 + \sigma_{\text{ANN}}^2}\right)$$
 
-When $\min_{n \in \mathcal{N}} \text{ceiling}_n(S_n) < 1.0$, the match payload explicitly surfaces `capped_by` (Koota ID, name, pillar) and `ceiling_applied` (float) so users and clients understand the exact constraint.
+Compensatory variance propagates as:
+$$\sigma_{\text{comp}} = \frac{\sqrt{\sum_{c \in \mathcal{C}} w_c^2 \sigma_c^2}}{\sum_{c \in \mathcal{C}} w_c}$$
+
+For the weakest-link non-compensatory ceiling $m = \arg\min \text{ceiling}_n(S_n)$, sensitivity is elevated near $[\tau_{\text{low}}, \tau_{\text{high}}]$ boundaries ($\sigma_{\text{ceiling}} = c'_m \sigma_m$).
+
+Total Final Score Uncertainty:
+$$\sigma_{\text{final}} = \sqrt{(\text{ceiling}_{\text{applied}} \cdot \sigma_{\text{comp}})^2 + (\text{CompScore} \cdot \sigma_{\text{ceiling}})^2}$$
+
+### 4. Risk-Adjusted Ranking & Confidence Bucketing
+- **Risk-Adjusted Ranking Score**: $S_{\text{risk}} = \text{round}(\max(0.0, \text{FinalScore} - 1.5 \cdot \sigma_{\text{final}}), 4)$, used for WeeklyMatchList ordering and tier classification so high-variance volatile matches do not outrank reliable high-evidence matches.
+- **Evidence Coverage Percentage**: $\text{evidence\_coverage\_pct} = 100.0 \times \frac{\sum_{k \in \text{answered}} w_k}{\sum_{k=1}^{42} w_k}$.
+- **Confidence Bucketing**:
+  - **High Confidence**: $\sigma_{\text{final}} \le 0.05$ AND $\text{evidence\_coverage\_pct} \ge 85.0\%$.
+  - **Moderate Confidence**: $\sigma_{\text{final}} \le 0.12$ AND $\text{evidence\_coverage\_pct} \ge 60.0\%$.
+  - **Low Confidence**: $\sigma_{\text{final}} > 0.12$ OR $\text{evidence\_coverage\_pct} < 60.0\%$.
 
 ### Funnel Stage Breakdown
 1. **Stage 1 — SQL Indexed Hard Filters**:
@@ -275,12 +290,12 @@ When $\min_{n \in \mathcal{N}} \text{ceiling}_n(S_n) < 1.0$, the match payload e
 3. **Stage 3 — NLI Contradiction Screening (BART-MNLI)**:
    - Evaluates premise/hypothesis contradiction probabilities on subjective answers. Contradiction probability directly feeds $S_n$, which natively scales $\text{ceiling}_n(S_n)$ down to floor ($\le 0.30$) and drops irreconcilable pairs before LLM evaluation.
 4. **Stage 4 — Multi-Provider LLM-as-a-Judge**:
-   - Shortlisted Top 10 pairs undergo deep psychological compatibility evaluation via Groq Llama-3.3-70B (with fallback to OpenRouter & Gemini). Generates nuanced alignment points and conversation-starter friction points.
-5. **Stage 5 — Continuous Ceiling Aggregation & Tier Classification**:
-   - Computes `CompScore`, applies $\min \text{ceiling}_n(S_n)$, tags `capped_by`, and assigns final tiers:
-     - **Strong Match**: Final Score $\ge 0.75$, zero high disagreements, no non-compensatory ceiling drops.
-     - **Compatible with Flagged Friction Points**: Final Score $0.50 - 0.74$.
-     - **Not Viable**: Final Score $< 0.50$ or failed hard filter / critical ceiling ($\le 0.40$). Never shown in weekly digest.
+   - Shortlisted Top 10 pairs undergo deep psychological compatibility evaluation via Groq Llama-3.3-70B (with fallback to OpenRouter & Gemini). Generates nuanced alignment points, conversation-starter friction points, and confidence scores.
+5. **Stage 5 — Continuous Ceiling Aggregation, Uncertainty Propagation & Risk-Adjusted Ranking**:
+   - Computes `CompScore`, applies $\min \text{ceiling}_n(S_n)$, tags `capped_by`, propagates $\sigma_{\text{final}}$, and assigns final tiers based on $S_{\text{risk}}$:
+     - **Strong Match**: $S_{\text{risk}} \ge 0.75$, zero high disagreements, no non-compensatory ceiling drops.
+     - **Compatible with Flagged Friction Points**: $S_{\text{risk}} = 0.50 - 0.74$.
+     - **Not Viable**: $S_{\text{risk}} < 0.50$ or failed hard filter / critical ceiling ($\le 0.40$). Never shown in weekly digest.
 
 ---
 

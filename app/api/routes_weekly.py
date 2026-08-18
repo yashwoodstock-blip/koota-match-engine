@@ -19,6 +19,13 @@ class WeeklyMatchDTO(BaseModel):
     candidate_name: str
     score: float
     tier: str  # "strong match", "compatible with flagged friction points", etc.
+    risk_adjusted_score: Optional[float] = None
+    score_uncertainty: Optional[float] = None
+    score_interval: Optional[List[float]] = None
+    confidence: Optional[str] = None
+    evidence_coverage_pct: Optional[float] = None
+    critical_contradictions: Optional[int] = 0
+    high_impact_uncertainty: List[str] = []
     alignment_points: List[str] = []
     friction_points: List[str] = []
     contradiction_gates: List[Dict[str, Any]] = []

@@ -90,6 +90,15 @@ export interface WeeklyMatchDTO {
   candidate_name: string;
   score: number;
   tier: string;
+  risk_adjusted_score?: number;
+  score_uncertainty?: number;
+  score_interval?: [number, number];
+  confidence?: 'High' | 'Moderate' | 'Low';
+  evidence_coverage_pct?: number;
+  critical_contradictions?: number;
+  high_impact_uncertainty?: string[];
+  capped_by?: { koota_id: number; koota_name: string; pillar: string; ceiling: number };
+  ceiling_applied?: number;
   alignment_points: string[];
   friction_points: string[];
   contradiction_gates?: any[];

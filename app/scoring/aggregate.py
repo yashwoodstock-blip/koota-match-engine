@@ -26,7 +26,15 @@ class AggregateMatchResult:
     objective_score: Optional[float] = None
     semantic_score: Optional[float] = None
     tier_ceiling: Optional[str] = None  # None | "compatible with flagged friction points" | "not viable"
+    risk_adjusted_score: Optional[float] = None
+    score_uncertainty: Optional[float] = None
+    score_interval: Optional[List[float]] = None
+    confidence: Optional[str] = None  # "High" | "Moderate" | "Low"
+    evidence_coverage_pct: Optional[float] = None
+    critical_contradictions: int = 0
+    high_impact_uncertainty: List[str] = field(default_factory=list)
     koota_scores: Dict[int, float] = field(default_factory=dict)
+    koota_uncertainties: Dict[int, float] = field(default_factory=dict)
     disagreement_flags: List[Dict[str, Any]] = field(default_factory=list)
     contradiction_gates: List[Dict[str, Any]] = field(default_factory=list)
     llm_judge_insights: Dict[int, Dict[str, Any]] = field(default_factory=dict)
@@ -56,7 +64,7 @@ def calculate_koota_ceiling(k_score: float, k_meta: Dict[str, Any]) -> float:
         return 1.0
 
     # Degenerate hard-cliff case
-    if tau_low == tau_high:
+    if tau_low >= tau_high:
         return 1.0 if k_score >= tau_high else float(floor)
 
     if k_score >= tau_high:
@@ -64,9 +72,52 @@ def calculate_koota_ceiling(k_score: float, k_meta: Dict[str, Any]) -> float:
     elif k_score < tau_low:
         return float(floor)
     else:
-        # Continuous linear interpolation between tau_low and tau_high
-        ratio = (k_score - tau_low) / (tau_high - tau_low)
-        return float(floor + (1.0 - floor) * ratio)
+        # Continuous linear interpolation between floor and 1.0
+        normalized = (k_score - tau_low) / (tau_high - tau_low)
+        return float(floor + (1.0 - floor) * normalized)
+
+
+def calculate_koota_uncertainty(
+    k_id: int,
+    k_meta: Dict[str, Any],
+    is_answered: bool,
+    has_objective: bool,
+    has_semantic: bool,
+    llm_judge_result: Optional[LLMJudgeResult] = None,
+    divergence: Optional[float] = None,
+    ann_margin: Optional[float] = None,
+) -> float:
+    """Derive sigma_k uncertainty for a single Koota from real pipeline signals."""
+    if not is_answered:
+        return 0.35  # Near-total uncertainty for skipped/unanswered Kootas
+
+    # 1. Answer modality baseline uncertainty
+    if has_objective and not has_semantic:
+        sigma_base = 0.04  # Deterministic discrete multiple-choice
+    elif has_objective and has_semantic:
+        sigma_base = 0.08  # Blended objective + subjective
+    else:
+        sigma_base = 0.12  # Purely subjective narrative free-text
+
+    # 2. Objective-Subjective Divergence signal
+    sigma_div = 0.0
+    if divergence is not None and divergence >= 0.25:
+        sigma_div = min(0.15, divergence * 0.30)
+
+    # 3. LLM Judge confidence / disagreement signal
+    sigma_llm = 0.0
+    if llm_judge_result is not None:
+        judge_conf = getattr(llm_judge_result, "confidence", 0.85)
+        sigma_llm = 0.15 * max(0.0, 1.0 - judge_conf)
+
+    # 4. Stage 2 ANN cosine cutoff margin signal
+    sigma_ann = 0.0
+    if ann_margin is not None:
+        sigma_ann = 0.05 * max(0.0, 1.0 - ann_margin)
+
+    # Combined quadrature uncertainty
+    total_var = (sigma_base ** 2) + (sigma_div ** 2) + (sigma_llm ** 2) + (sigma_ann ** 2)
+    return round(max(0.01, min(0.40, total_var ** 0.5)), 4)
 
 
 def detect_disagreement_flags(
@@ -109,6 +160,7 @@ def detect_disagreement_flags(
                     "objective_score": round(obj_score, 4),
                     "subjective_score": round(subj_score, 4),
                     "divergence": divergence,
+                    "delta": divergence,
                     "severity": "high" if divergence >= 0.50 else "moderate",
                     "note": note,
                 })
@@ -188,8 +240,9 @@ def aggregate_scores(
     kootas_metadata: Dict[int, Dict[str, Any]],
     llm_judge_results: Optional[Dict[int, LLMJudgeResult]] = None,
     divergence_threshold: float = 0.35,
+    koota_uncertainties_override: Optional[Dict[int, float]] = None,
 ) -> AggregateMatchResult:
-    """Merge scores separating Compensatory trade-offs and Non-Compensatory continuous ceilings."""
+    """Merge scores separating Compensatory trade-offs, Non-Compensatory continuous ceilings, and Uncertainty Quantification."""
     if not is_viable:
         return AggregateMatchResult(
             is_viable=False,
@@ -202,7 +255,15 @@ def aggregate_scores(
             objective_score=None,
             semantic_score=None,
             tier_ceiling="not viable",
+            risk_adjusted_score=None,
+            score_uncertainty=None,
+            score_interval=None,
+            confidence="Low",
+            evidence_coverage_pct=0.0,
+            critical_contradictions=0,
+            high_impact_uncertainty=[],
             koota_scores={},
+            koota_uncertainties={},
             disagreement_flags=[],
             contradiction_gates=[],
             llm_judge_insights={},
@@ -215,6 +276,7 @@ def aggregate_scores(
         kootas_metadata,
         threshold=divergence_threshold,
     )
+    div_map = {f["koota_id"]: f["delta"] for f in disagreement_flags}
 
     # 2. Combine Koota-level scores across objective, subjective, and LLM judge sources
     all_koota_ids = set(objective_koota_scores.keys()) | set(semantic_koota_scores.keys())
@@ -222,19 +284,32 @@ def aggregate_scores(
         all_koota_ids |= set(llm_judge_results.keys())
 
     merged_koota_scores: Dict[int, float] = {}
+    merged_koota_uncertainties: Dict[int, float] = {}
+
     comp_weighted_sum = 0.0
     comp_total_weight = 0.0
+    comp_var_weighted_sum = 0.0
 
     raw_weighted_sum = 0.0
     raw_total_weight = 0.0
 
-    non_comp_ceilings: List[Tuple[int, float]] = []
+    non_comp_ceilings: List[Tuple[int, float, float]] = []  # (k_id, ceiling, sigma_k)
+    critical_contradictions_count = 0
+    high_impact_uncertainty: List[str] = []
+
+    # Calculate evidence coverage across all 42 Kootas
+    total_catalogue_weight = sum(kootas_metadata.get(k, {}).get("weight", 1) for k in kootas_metadata) or 1.0
+    answered_weight = sum(kootas_metadata.get(k, {}).get("weight", 1) for k in all_koota_ids if k in kootas_metadata)
+    evidence_coverage_pct = round((answered_weight / total_catalogue_weight) * 100.0, 1)
 
     for k_id in all_koota_ids:
         scores_for_koota = []
-        if k_id in objective_koota_scores:
+        has_obj = k_id in objective_koota_scores
+        has_subj = k_id in semantic_koota_scores
+
+        if has_obj:
             scores_for_koota.append(objective_koota_scores[k_id])
-        if k_id in semantic_koota_scores:
+        if has_subj:
             scores_for_koota.append(semantic_koota_scores[k_id])
         if llm_judge_results and k_id in llm_judge_results:
             scores_for_koota.append(llm_judge_results[k_id].agreement_score)
@@ -246,31 +321,61 @@ def aggregate_scores(
         weight = k_meta.get("weight", 1)
         agg_type = k_meta.get("aggregation_type", "compensatory")
 
+        # Uncertainty derivation for k_id
+        if koota_uncertainties_override and k_id in koota_uncertainties_override:
+            sigma_k = koota_uncertainties_override[k_id]
+        else:
+            judge_res = llm_judge_results.get(k_id) if llm_judge_results else None
+            sigma_k = calculate_koota_uncertainty(
+                k_id=k_id,
+                k_meta=k_meta,
+                is_answered=True,
+                has_objective=has_obj,
+                has_semantic=has_subj,
+                llm_judge_result=judge_res,
+                divergence=div_map.get(k_id),
+            )
+        merged_koota_uncertainties[k_id] = sigma_k
+
+        # Check high-impact uncertainty callout: weight >= 10 and sigma >= 0.15
+        if weight >= 10 and sigma_k >= 0.15:
+            k_name = k_meta.get("name", f"Koota {k_id}")
+            pillar = k_meta.get("pillar", "Core Pillar")
+            high_impact_uncertainty.append(f"{k_name} ({pillar})")
+
         raw_weighted_sum += k_score * weight
         raw_total_weight += weight
 
         if agg_type == "non_compensatory":
             c_val = calculate_koota_ceiling(k_score, k_meta)
-            non_comp_ceilings.append((k_id, c_val))
+            non_comp_ceilings.append((k_id, c_val, sigma_k))
+            tau_low = k_meta.get("tau_low", 0.40)
+            if k_score <= tau_low:
+                critical_contradictions_count += 1
         else:
             comp_weighted_sum += k_score * weight
             comp_total_weight += weight
+            comp_var_weighted_sum += (weight ** 2) * (sigma_k ** 2)
 
     raw_composite_score = round(raw_weighted_sum / raw_total_weight, 4) if raw_total_weight > 0 else 0.0
 
     # Compensatory Score calculation
     if comp_total_weight > 0:
         comp_score = round(comp_weighted_sum / comp_total_weight, 4)
+        sigma_comp = (comp_var_weighted_sum ** 0.5) / comp_total_weight
     else:
         comp_score = raw_composite_score
+        sigma_comp = 0.05
 
-    # Weakest-link non-compensatory ceiling evaluation
+    # Weakest-link non-compensatory ceiling evaluation & ceiling variance propagation
     if non_comp_ceilings:
         # Find minimum ceiling
-        min_k_id, min_ceiling = min(non_comp_ceilings, key=lambda x: x[1])
+        min_item = min(non_comp_ceilings, key=lambda x: x[1])
+        min_k_id, min_ceiling, min_sigma_k = min_item
         min_ceiling = round(min_ceiling, 4)
+        k_meta = kootas_metadata.get(min_k_id, {})
+
         if min_ceiling < 1.0:
-            k_meta = kootas_metadata.get(min_k_id, {})
             capped_by = {
                 "koota_id": min_k_id,
                 "koota_name": k_meta.get("name", f"Koota {min_k_id}"),
@@ -279,12 +384,48 @@ def aggregate_scores(
             }
         else:
             capped_by = None
+
+        # Calculate ceiling uncertainty sensitivity:
+        t_low = k_meta.get("tau_low", 0.40)
+        t_high = k_meta.get("tau_high", 0.75)
+        c_floor = k_meta.get("floor", 0.40)
+        k_score = merged_koota_scores.get(min_k_id, 0.5)
+
+        if t_low < t_high and t_low <= k_score < t_high:
+            slope = (1.0 - c_floor) / (t_high - t_low)
+            sigma_ceiling = slope * min_sigma_k
+        elif abs(k_score - t_low) <= min_sigma_k or abs(k_score - t_high) <= min_sigma_k:
+            sigma_ceiling = 0.50 * min_sigma_k
+        else:
+            sigma_ceiling = 0.10 * min_sigma_k
     else:
         min_ceiling = 1.0
+        sigma_ceiling = 0.0
         capped_by = None
 
     # Final overall score is CompScore scaled by weakest-link ceiling
     final_overall_score = round(comp_score * min_ceiling, 4)
+
+    # Propagate combined final score uncertainty
+    # FinalScore = CompScore * ceiling_applied
+    var_final = ((min_ceiling * sigma_comp) ** 2) + ((comp_score * sigma_ceiling) ** 2)
+    final_sigma = round(max(0.01, min(0.40, var_final ** 0.5)), 4)
+
+    # 95% Confidence interval
+    lower_interval = round(max(0.0, final_overall_score - (1.96 * final_sigma)), 4)
+    upper_interval = round(min(1.0, final_overall_score + (1.96 * final_sigma)), 4)
+    score_interval = [lower_interval, upper_interval]
+
+    # Risk-Adjusted Ranking Score: FinalScore - 1.5 * sigma
+    risk_adjusted_score = round(max(0.0, final_overall_score - (1.5 * final_sigma)), 4)
+
+    # Confidence bucketing
+    if final_sigma <= 0.05 and evidence_coverage_pct >= 85.0:
+        confidence_label = "High"
+    elif final_sigma <= 0.12 and evidence_coverage_pct >= 60.0:
+        confidence_label = "Moderate"
+    else:
+        confidence_label = "Low"
 
     # 3. Detect Qualitative Contradiction Gates & Tier Ceilings
     gates, tier_ceiling, _ = detect_contradiction_gates(
@@ -294,7 +435,7 @@ def aggregate_scores(
         koota_scores=merged_koota_scores,
     )
 
-    # If weakest-link ceiling is severe (<= 0.45), ensure tier is appropriately capped
+    # If weakest-link ceiling is severe (<= 0.40), ensure tier is appropriately capped
     if min_ceiling <= 0.40 and tier_ceiling is None:
         tier_ceiling = "not viable"
     elif min_ceiling <= 0.70 and tier_ceiling is None:
@@ -317,7 +458,10 @@ def aggregate_scores(
                 "koota_id": k_id,
                 "agreement_score": j.agreement_score,
                 "contradiction": j.contradiction,
+                "confidence": getattr(j, "confidence", 0.90),
                 "reasoning": j.reasoning,
+                "alignment_points": getattr(j, "alignment_points", []),
+                "friction_points": getattr(j, "friction_points", []),
                 "key_tensions": j.key_tensions,
                 "provider_used": j.provider_used,
             }
@@ -333,7 +477,15 @@ def aggregate_scores(
         objective_score=overall_obj,
         semantic_score=overall_subj,
         tier_ceiling=tier_ceiling,
+        risk_adjusted_score=risk_adjusted_score,
+        score_uncertainty=final_sigma,
+        score_interval=score_interval,
+        confidence=confidence_label,
+        evidence_coverage_pct=evidence_coverage_pct,
+        critical_contradictions=critical_contradictions_count,
+        high_impact_uncertainty=high_impact_uncertainty,
         koota_scores=merged_koota_scores,
+        koota_uncertainties=merged_koota_uncertainties,
         disagreement_flags=disagreement_flags,
         contradiction_gates=gates,
         llm_judge_insights=judge_insights_dict,

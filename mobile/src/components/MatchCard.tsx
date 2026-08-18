@@ -57,25 +57,66 @@ export const MatchCard: React.FC<Props> = ({ match, onExpressInterest, onPressDe
     <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
       {/* Top Meta Bar */}
       <View style={styles.topRow}>
-        <View
-          style={[
-            styles.tierBadge,
-            isStrongMatch ? styles.tierBadgeStrong : styles.tierBadgeCompatible,
-          ]}
-        >
-          <Text
+        <View style={styles.badgeColumn}>
+          <View
             style={[
-              styles.tierText,
-              isStrongMatch ? styles.tierTextStrong : styles.tierTextCompatible,
+              styles.tierBadge,
+              isStrongMatch ? styles.tierBadgeStrong : styles.tierBadgeCompatible,
             ]}
           >
-            {isStrongMatch ? '✦ STRONG MATCH' : '✦ COMPATIBLE'}
-          </Text>
+            <Text
+              style={[
+                styles.tierText,
+                isStrongMatch ? styles.tierTextStrong : styles.tierTextCompatible,
+              ]}
+            >
+              {isStrongMatch ? '✦ STRONG MATCH' : '✦ COMPATIBLE'}
+            </Text>
+          </View>
+
+          {/* Confidence & Coverage Indicator */}
+          <View style={styles.confidenceRow}>
+            {match.confidence && (
+              <View
+                style={[
+                  styles.confidencePill,
+                  match.confidence === 'High'
+                    ? styles.confidenceHigh
+                    : match.confidence === 'Moderate'
+                    ? styles.confidenceModerate
+                    : styles.confidenceLow,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.confidenceText,
+                    match.confidence === 'High'
+                      ? styles.confidenceTextHigh
+                      : match.confidence === 'Moderate'
+                      ? styles.confidenceTextModerate
+                      : styles.confidenceTextLow,
+                  ]}
+                >
+                  {match.confidence.toUpperCase()} CONFIDENCE
+                </Text>
+              </View>
+            )}
+            {(match.evidence_coverage_pct ?? 0) > 0 && (
+              <Text style={styles.coverageText}>
+                {Math.round(match.evidence_coverage_pct!)}% coverage
+              </Text>
+            )}
+          </View>
         </View>
 
         <View style={styles.scoreContainer}>
           <Text style={styles.scoreNumber}>{Math.round(match.score * 100)}%</Text>
           <Text style={styles.scoreLabel}>COMPATIBILITY</Text>
+          {match.score_interval && (
+            <Text style={styles.intervalText}>
+              [{Math.round(match.score_interval[0] * 100)}%–{Math.round(match.score_interval[1] * 100)}%]
+            </Text>
+          )}
         </View>
       </View>
 
@@ -92,10 +133,12 @@ export const MatchCard: React.FC<Props> = ({ match, onExpressInterest, onPressDe
         </View>
       )}
 
-      {/* Harmonious Alignment & Conversation Starter Insights */}
+      {/* Harmonious Alignment, Conversation Starters, & High-Impact Uncertainty Callouts */}
       <AlignmentFrictionList
         alignments={match.alignment_points || []}
         frictions={match.friction_points || []}
+        highImpactUncertainties={match.high_impact_uncertainty || []}
+        cappedBy={match.capped_by}
       />
 
       {/* Actions */}
@@ -156,6 +199,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  badgeColumn: {
+    alignItems: 'flex-start',
+    gap: 4,
+  },
   tierBadge: {
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -182,6 +229,50 @@ const styles = StyleSheet.create({
   tierTextCompatible: {
     color: Colors.accentDark,
   },
+  confidenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  confidencePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+  },
+  confidenceHigh: {
+    backgroundColor: '#EBF6EE',
+    borderColor: '#BBE2C6',
+  },
+  confidenceModerate: {
+    backgroundColor: '#FFF8E7',
+    borderColor: '#FEE5A5',
+  },
+  confidenceLow: {
+    backgroundColor: '#FDF0EC',
+    borderColor: '#F8C8BA',
+  },
+  confidenceText: {
+    ...Typography.caption,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  confidenceTextHigh: {
+    color: '#217A3C',
+  },
+  confidenceTextModerate: {
+    color: '#9C6800',
+  },
+  confidenceTextLow: {
+    color: '#B83A1B',
+  },
+  coverageText: {
+    ...Typography.caption,
+    fontSize: 9,
+    color: Colors.textMuted,
+  },
   scoreContainer: {
     alignItems: 'flex-end',
   },
@@ -197,6 +288,13 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.textMuted,
     letterSpacing: 1,
+  },
+  intervalText: {
+    ...Typography.caption,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   candidateName: {
     ...Typography.display,

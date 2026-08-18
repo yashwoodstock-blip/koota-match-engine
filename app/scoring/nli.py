@@ -19,6 +19,8 @@ class NLIResult:
     neutral: float
     contradiction: float
     is_contradiction: bool
+    margin: float = 0.50
+    confidence: float = 0.85
 
 
 def compute_nli_score(
@@ -27,11 +29,17 @@ def compute_nli_score(
     contradiction: float,
     contradiction_threshold: float = 0.50,
 ) -> NLIResult:
-    """Compute calibrated similarity score and contradiction flag from NLI probabilities."""
+    """Compute calibrated similarity score, contradiction flag, margin, and confidence."""
     # Calibrated score: entailment rewarded, neutral gives baseline, contradiction heavily penalized
     raw_score = entailment + (0.40 * neutral) - (0.70 * contradiction)
     score = round(max(0.0, min(1.0, float(raw_score))), 4)
     is_contra = contradiction >= contradiction_threshold
+
+    probs = sorted([entailment, neutral, contradiction], reverse=True)
+    p_max = probs[0]
+    p_second = probs[1] if len(probs) > 1 else 0.0
+    margin = round(p_max - p_second, 4)
+    confidence = round(max(0.0, min(1.0, (p_max - 0.3333) / 0.6667)), 4)
 
     return NLIResult(
         score=score,
@@ -39,6 +47,8 @@ def compute_nli_score(
         neutral=round(neutral, 4),
         contradiction=round(contradiction, 4),
         is_contradiction=is_contra,
+        margin=margin,
+        confidence=confidence,
     )
 
 

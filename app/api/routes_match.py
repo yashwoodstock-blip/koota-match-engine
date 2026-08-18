@@ -192,6 +192,16 @@ async def score_match(
         tier=tier_eval.tier,
         overall_score=aggregate.overall_score,
         raw_composite_score=aggregate.raw_composite_score,
+        compensatory_score=aggregate.compensatory_score,
+        ceiling_applied=aggregate.ceiling_applied,
+        capped_by=aggregate.capped_by,
+        risk_adjusted_score=aggregate.risk_adjusted_score,
+        score_uncertainty=aggregate.score_uncertainty,
+        score_interval=aggregate.score_interval,
+        confidence=aggregate.confidence,
+        evidence_coverage_pct=aggregate.evidence_coverage_pct,
+        critical_contradictions=aggregate.critical_contradictions,
+        high_impact_uncertainty=aggregate.high_impact_uncertainty,
         objective_score=aggregate.objective_score,
         semantic_score=aggregate.semantic_score,
         tier_ceiling=aggregate.tier_ceiling,
@@ -286,6 +296,16 @@ async def get_ranked_candidates(
                     is_viable=True,
                     tier=tier_eval.tier,
                     overall_score=agg.overall_score,
+                    compensatory_score=agg.compensatory_score,
+                    ceiling_applied=agg.ceiling_applied,
+                    capped_by=agg.capped_by,
+                    risk_adjusted_score=agg.risk_adjusted_score,
+                    score_uncertainty=agg.score_uncertainty,
+                    score_interval=agg.score_interval,
+                    confidence=agg.confidence,
+                    evidence_coverage_pct=agg.evidence_coverage_pct,
+                    critical_contradictions=agg.critical_contradictions,
+                    high_impact_uncertainty=agg.high_impact_uncertainty,
                     alignment_points=tier_eval.alignment_points,
                     friction_points=tier_eval.friction_points,
                     disagreement_count=len(agg.disagreement_flags),
@@ -295,6 +315,9 @@ async def get_ranked_candidates(
                 )
             )
 
-    # Sort candidates by overall_score descending
-    ranked_list.sort(key=lambda c: c.overall_score or 0.0, reverse=True)
+    # Sort candidates by risk_adjusted_score descending (with fallback to overall_score)
+    ranked_list.sort(
+        key=lambda c: (c.risk_adjusted_score if c.risk_adjusted_score is not None else c.overall_score or 0.0, c.overall_score or 0.0),
+        reverse=True,
+    )
     return ranked_list

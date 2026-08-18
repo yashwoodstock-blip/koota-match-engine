@@ -6,11 +6,28 @@ import { Typography } from '../theme/typography';
 interface Props {
   alignments: string[];
   frictions: string[];
+  highImpactUncertainties?: string[];
+  cappedBy?: { koota_name?: string; pillar?: string; ceiling?: number };
 }
 
-export const AlignmentFrictionList: React.FC<Props> = ({ alignments, frictions }) => {
+export const AlignmentFrictionList: React.FC<Props> = ({
+  alignments,
+  frictions,
+  highImpactUncertainties = [],
+  cappedBy,
+}) => {
   return (
     <View style={styles.container}>
+      {/* Non-Compensatory Ceiling Alert if Present */}
+      {cappedBy && (
+        <View style={styles.ceilingAlert}>
+          <Text style={styles.ceilingIcon}>⚖️</Text>
+          <Text style={styles.ceilingText}>
+            Score bounded by non-compensatory ceiling in {cappedBy.koota_name || 'Core Dimension'} ({Math.round((cappedBy.ceiling || 1.0) * 100)}% cap)
+          </Text>
+        </View>
+      )}
+
       {/* Alignment Highlights */}
       {alignments.length > 0 && (
         <View style={styles.section}>
@@ -40,6 +57,25 @@ export const AlignmentFrictionList: React.FC<Props> = ({ alignments, frictions }
             <View key={i} style={styles.itemRow}>
               <Text style={styles.frictionBullet}>•</Text>
               <Text style={[styles.itemText, styles.frictionText]}>{pt}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* High-Impact Uncertainty Exploration Callouts */}
+      {highImpactUncertainties.length > 0 && (
+        <View style={[styles.section, styles.uncertaintySection]}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.uncertaintyIcon}>🔍</Text>
+            <Text style={styles.uncertaintyTitle}>AREAS TO EXPLORE DEEPER</Text>
+          </View>
+          <Text style={styles.uncertaintyIntro}>
+            High-impact foundational areas with emerging or exploratory alignment:
+          </Text>
+          {highImpactUncertainties.map((item, i) => (
+            <View key={i} style={styles.itemRow}>
+              <Text style={styles.uncertaintyBullet}>✧</Text>
+              <Text style={[styles.itemText, styles.uncertaintyItemText]}>{item}</Text>
             </View>
           ))}
         </View>
@@ -106,5 +142,56 @@ const styles = StyleSheet.create({
   frictionText: {
     color: Colors.textSecondary,
     fontStyle: 'italic',
+  },
+  ceilingAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF3EE',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  ceilingIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  ceilingText: {
+    ...Typography.caption,
+    color: Colors.accentDark,
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  uncertaintySection: {
+    backgroundColor: '#F9F8F5',
+    borderColor: Colors.border,
+  },
+  uncertaintyIcon: {
+    fontSize: 12,
+    marginRight: 6,
+  },
+  uncertaintyTitle: {
+    ...Typography.caption,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: '#8C6D4F',
+    fontWeight: '700',
+  },
+  uncertaintyIntro: {
+    ...Typography.caption,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  uncertaintyBullet: {
+    color: '#8C6D4F',
+    fontSize: 12,
+    marginRight: 8,
+    marginTop: 2,
+  },
+  uncertaintyItemText: {
+    color: Colors.text,
+    fontSize: 12,
   },
 });
